@@ -1,0 +1,23 @@
+{
+  "name": "ast-sout",
+  "version": "1.0.0",
+  "description": "Search for information in an abstract sysntax tree",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codemansw/ast-scout.git"
+  },
+  "keywords": [
+    "ast",
+    "scout"
+  ],
+  "author": "WillemHein Triemstra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codemansw/ast-scout/issues"
+  },
+  "homepage": "https://github.com/codemansw/ast-scout#readme"
+}
