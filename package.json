@@ -1,6 +1,6 @@
 {
-  "name": "ast-sout",
-  "version": "1.0.0",
+  "name": "ast-scout",
+  "version": "1.0.1",
   "description": "Search for information in an abstract sysntax tree",
   "main": "index.js",
   "scripts": {
