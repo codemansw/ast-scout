@@ -19,5 +19,20 @@
   "bugs": {
     "url": "https://github.com/codemansw/ast-scout/issues"
   },
-  "homepage": "https://github.com/codemansw/ast-scout#readme"
+  "homepage": "https://github.com/codemansw/ast-scout#readme",
+  "dependencies": {
+    "@babel/generator": "^7.5.5",
+    "@babel/traverse": "^7.5.5",
+    "@babel/types": "^7.5.5",
+    "json-decycle": "^1.0.0",
+    "lodash": "^4.17.15",
+    "node-dir": "^0.1.17"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.2.0"
+  },
+  "mocha": {
+    "glob": "./**/*test.js"
+  }
 }
