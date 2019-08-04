@@ -16,18 +16,6 @@ const pathOpts = [
   'parentKey',
 ];
 
-checkValue = value => {
-  if (isString(value) || isNumber(value) || isBoolean(value)) {
-    return value;
-  } else if (isArray(value)) {
-    return 'array';
-  } else if (isObject(value)) {
-    return 'object';
-  }
-
-  return value;
-}
-
 getFingerPrint = path => {
   const nodeFingerPrint = {
   }
@@ -51,111 +39,171 @@ getFingerPrint = path => {
   return nodeFingerPrint;
 }
 
-function createVisitorObject(scoutTree) {
-  let scoutRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
-
-  if (!scoutRef) {
-    // console.log('none:', scoutRef);
-    return {}
+checkValue = value => {
+  if (isString(value) || isNumber(value) || isBoolean(value)) {
+    return value;
+  } else if (isArray(value)) {
+    return 'array';
+  } else if (isObject(value)) {
+    return 'object';
   }
 
-  const visitorObject = createVisitorObject(scoutRef);
-  // console.log('visitorObject', visitorObject);
+  return value;
+}
 
-  return {
-    [scoutRef.node.type]: function(path) {
-      // if (path.node.callee && path.node.callee.name === 'getDictionaryString') {
-      //   let a = 1;
-      // }
-      // console.log(path.node.type);
-      // console.log(`code: "${generate(path.node).code}"`);
-      // console.log(this.scoutTree.next ? true : false);
+scoutSkipKeys = [
+  'next',
+  'prev',
+  'parent',
+  'indexPath',
+]
 
-      let checkForMatch = false;
-      let scout = this.scoutTree;
-      let next = false;
+nodeAdditionalKeys = [
+  'start',
+  'end',
+]
 
-      do {
-        next = false;
+const matchScout = (path, scout) => {
+  // check path:
+  const match = Object.keys(scout).reduce( (previousValue, key) => {
+    if (isString(scout[key]) && !scoutSkipKeys.includes(key)) { // limit to path key & string values
+      previousValue = previousValue && checkValue(path[key]) === scout[key];
+    }
 
-        // compare scout with path/node
-        checkForMatch = Object.keys(scout).reduce( (previousValue, key) => {
-          if (isString(scout)) { // limit to path key & string values
-            previousValue = previousValue && checkValue(path[key]) === scout[key];
-          }
+    return previousValue;
+  }, true);
 
-          return previousValue;
-        }, true);
+  // check path.node:
+  return Object.keys(scout.node).reduce( (previousValue, key) => {
+    if (isString(scout.node[key])) { // limit to path.node key & string values
+      previousValue = previousValue && checkValue(path.node[key]) === scout.node[key];
+    }
 
-        checkForMatch = Object.keys(scout.node).reduce( (previousValue, key) => {
-          if (isString(key)) { // limit to path.node key & string values
-            previousValue = previousValue && checkValue(path.node[key]) === scout.node[key];
-          }
+    return previousValue;
+  }, match);
+}
 
-          return previousValue;
-        }, checkForMatch);
+const createState = ({
+  path,
+  visitorObject,
+  parent,
+  scout
+}) => {
+  const state = {
+    type: path.node.type,
+    scoutIndexPath: scout.indexPath,
+    // scoutDone: Object.keys(visitorObject).length === 0,
+    scoutDone: false,
+    node: {},
+    parent,
+  };
 
-        if (checkForMatch) {
-          // path.stop();
+  pathOpts.forEach( key => {
+    state[key] = checkValue(path[key]);
+  });
 
-        } else if (scout.next) {
-          next = true;
-          scout = scout.next;
-        }
-      } while(!checkForMatch && next);
+  Object.keys(scout.node).forEach( key => {
+    state.node[key] = checkValue(path.node[key]);
+  });
 
-      // if (checkForMatch && !this.state.checkForMatch) {
-      if (checkForMatch) {
-        // console.log('match::::::::::::::::::::');
+  nodeAdditionalKeys.forEach( key => {
+    state.node[key] = checkValue(path.node[key]);
+  })
 
-        // console.log(1, this.state);
-        const newState = {
-          type: path.node.type,
-          checkForMatch,
-          node: {},
-          scoutDone: Object.keys(visitorObject).length === 0,
-          parent: this.parent,
-          scout,
-        };
-        pathOpts.forEach( key => {
-          newState[key] = checkValue(path[key]);
-        });
-        Object.keys(scout.node).forEach( key => {
-          newState.node[key] = checkValue(path.node[key]);
-        });
+  return state;
+}
 
-        // console.log(2, this.state);
+const visitorFunctionFactory = visitorObject => {
+  return function(path) {
+    let match = false;
+    let scout = this.scoutTree;
+    let next = false;
 
-        // console.log('::::::::::::::::::::');
+    do {
+      next = false;
+      match = matchScout(path, scout);
 
-        if (Object.keys(visitorObject).length) {
-          // console.log('::::::::: more :::::::::::');
-          const newPaths = [];
-
-          path.traverse(visitorObject, {
-            scoutTree: this.scoutTree && this.scoutTree.paths && this.scoutTree.paths.length ? this.scoutTree.paths[0] : null,
-            state: newPaths,
-            parent: newState,
-          });
-
-          if (newPaths.length) {
-            newState.paths = newState.paths ? newState.paths.push(...newPaths) : [...newPaths];
-            // console.log('newState.paths', newState.paths)
-          }
-        }
-
-        this.state.push(newState);
-
-        // console.log(3, this.state);
-        // console.log(':::::::::: end ::::::::::');
+      if (!match && scout.next) {
+        // console.log('next');
+        next = true;
+        scout = scout.next;
       }
-    },
+    } while(!match && next);
+
+    if (match) {
+      // console.log('match', path.node.type, scout.indexPath);
+      const newState = createState({
+        path,
+        visitorObject,
+        parent: this.parent,
+        scout
+      });
+
+      // console.log(Object.keys(visitorObject).length);
+
+      if (Object.keys(visitorObject).length) {
+        const newScout = scout.paths ? scout.paths[0] : null;
+        const newPaths = [];
+
+        // console.log(newScout ? newScout.indexPath : 'null', Object.keys(visitorObject));
+
+        path.traverse(visitorObject, {
+          scoutTree: newScout,
+          state: newPaths,
+          parent: newState,
+        });
+
+        if (newPaths.length) {
+          newState.paths = newState.paths ? newState.paths.push(...newPaths) : [...newPaths];
+        }
+      }
+
+      // console.log(`${scout && scout.paths ? scout.paths.length : '-'}:${newState && newState.paths ? newState.paths.length : '-'}`);
+      // this.state.push(newState);
+
+      if ((
+        !newState.paths &&
+        !scout.paths
+      ) || (
+        has(scout, 'paths.length') &&
+        has(newState, 'paths.length') &&
+        scout.paths.length === newState.paths.filter( path => path.scoutDone ).length
+      )) {
+        this.state.push(newState);
+        newState.scoutDone = true;
+        path.skip();
+      }
+
+    }    
   }
 }
 
-const decorateTreeWithSiblingNavigation = scoutTree => {
+function createVisitorObject(scoutTree) {
+  let scoutRefs = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths : [];
+
+  if (scoutRefs.length === 0) {
+    return {}
+  }
+
+  const visitor = {};
+  
+  scoutRefs.forEach( scout => {
+    const visitorObject = createVisitorObject(scout);
+
+    if (!visitor[scout.node.type]) {
+      visitor[scout.node.type] = visitorFunctionFactory(visitorObject);
+    }
+  });
+
+  return visitor;
+}
+
+const decorateTreeWithSiblingNavigation = (scoutTree) => {
+  scoutTree.indexPath = scoutTree.indexPath || '0';
+
   if (scoutTree.paths) {
     scoutTree.paths.map( (path, index) => {
+      path.indexPath = `${scoutTree.indexPath}.${index}`;
       if (scoutTree.paths.length > index + 1) {
         path.next = scoutTree.paths[index + 1];
       }
@@ -170,8 +218,43 @@ const decorateTreeWithSiblingNavigation = scoutTree => {
   return scoutTree;
 }
 
+const cleanupState = state => state.map( path => {
+    delete path.parent;
+    
+    if (path.paths) {
+      path.paths = cleanupState(path.paths);
+    }
+
+    return path;
+  }
+);
+
+const cleanupTree = path => {
+  let newPath = Object.assign({}, path);
+
+  if (newPath.parent) {
+    newPath.parent = '...';
+  }
+  if (newPath.next) {
+    newPath.next = '...';
+  }
+  if (newPath.prev) {
+    newPath.prev = '...';
+  }
+
+  if (newPath.paths) {
+    newPath.paths = newPath.paths.map( path => {
+      return cleanupTree(path);
+    })
+  }
+
+  return newPath;
+}
+
 module.exports = {
   getFingerPrint,
   createVisitorObject,
   decorateTreeWithSiblingNavigation,
+  cleanupState,
+  cleanupTree,
 }
