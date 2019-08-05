@@ -4,98 +4,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
-const generate = require('@babel/generator').default;
 
-const t = require('@babel/types');
-const decycle = require('json-decycle').decycle;
-const {
-  getPathProfile,
-  createVisitorObject,
-  decorateTreeWithSiblingNavigation,
-  cleanupState,
-  cleanupTree,
-} = require('./utils');
-
-const getAst = (code, config = {}) => {
-    const defaultConfig = {
-        sourceType: 'module',
-        plugins: ['jsx', 'decorators-legacy', 'classProperties', 'objectRestSpread'],
-    }
-
-    return parser.parse(code, Object.assign(defaultConfig, config));
-};
-
-const groomScoutTree = tree => {
-  // remove top container node (first node) from scoutTree
-  // for any type but "*Declaration"
-  // and remove any references to the container node
-  if (
-    tree &&
-    tree.paths &&
-    tree.paths.length &&
-    tree.paths[0].paths &&
-    tree.paths[0].paths.length
-  ) {
-    if (tree.paths[0].nodeIsDeclaration === false) {
-      tree = {
-        paths: tree.paths[0].paths
-      };
-    }
-    delete tree.paths[0].parent;
-    delete tree.paths[0].inList;
-    delete tree.paths[0].listKey;
-    delete tree.paths[0].key;
-    delete tree.paths[0].parentKey;
-  
-  } else {
-    tree = {};
-  }
-
-  return tree;
-}
-
-const createVisitorFromScout = scoutString => {
-  const skipNodes = [
-    'Program'
-  ];
-
-  const scoutAst = getAst(scoutString);
-  let scoutTree = {};
-  let pathRef = scoutTree;
-
-  traverse(scoutAst, {
-    enter(path) {
-      if (!skipNodes.includes(path.node.type)) {
-        const pathProfile = Object.assign(getPathProfile(path), { parent: pathRef });
-
-        pathRef.paths = pathRef.paths || [];
-        pathRef.paths.push(pathProfile);
-        pathRef = pathRef.paths[pathRef.paths.length -1];
-      }
-    },
-    exit(path) {
-      if (!skipNodes.includes(path.node.type)) {
-        pathRef = pathRef.parent;
-      }
-    }
-  });
-
-  scoutTree = groomScoutTree(scoutTree);
-  scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add sibling next/prev to path results
-  pathRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
-
-  // console.log(JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
-  return {
-    scoutVisitorObject: createVisitorObject(scoutTree),
-    stateObject: {
-      scoutTree: pathRef,
-      state: [],
-      parent: null
-    }
-  };
-}
+const { findPaths } = require('./scout');
+const { getAst } = require('./utils');
 
 // const filePath = path.resolve('.', 'test-data/test.js');
 const filePath = path.resolve('.', 'test-data/App.js');
@@ -112,13 +24,24 @@ const scout9 = '<Routes />';
 const scout10 = '<Headline>{this.headlineMessage}</Headline>';
 const scout11 = 'import { getUserFirstName } from \'./bootstrap/bootstrap\';';
 const scout12 = 'key={previousSearchTerm}';
-
-const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout11);
+const scout14 = {
+  search: 'import { getMyString } from \'./common/utils/dictionary/dictionary\';',
+  matches: [{
+    match: './common/utils/dictionary/dictionary',
+    regExpr: /common\/utils\/dictionary\/dictionary$/
+  }],
+  paths: [
+    'getMyString'
+  ]
+}
 
 traverse(ast, {
   Program: function programVisitor(path) {
-    path.traverse(scoutVisitorObject, stateObject);
+    const paths = findPaths(path, scout11);
+    console.log(paths.length, paths[0].node.type);
+    // path.stop();
   }
 });
 
-console.log('state', JSON.stringify(cleanupState(stateObject.state), decycle(), 2));
+// const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout11);
+// console.log('state', JSON.stringify(cleanupState(stateObject.state), decycle(), 2));
