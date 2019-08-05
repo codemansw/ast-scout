@@ -18,8 +18,6 @@ const {
   cleanupTree,
 } = require('./utils');
 
-// const scout = require('./scout');
-
 const getAst = (code, config = {}) => {
     const defaultConfig = {
         sourceType: 'module',
@@ -30,51 +28,10 @@ const getAst = (code, config = {}) => {
 };
 
 const filePath = path.resolve('.', 'test-data/test.js');
+// const filePath = path.resolve('.', 'test-data/App.js');
 const code = fs.readFileSync(filePath).toString();
 const ast = getAst(code);
 
-// console.log(ast);
-// console.log(code);
-
-const scout = {
-  search: {
-    type: 'CallExpression',
-    validate: {
-      'node.callee.type': 'Identifier',
-      'node.callee.name': 'getDictionaryString',
-      binding: {
-        'parentPath.type': 'ImportSpecifier',
-        'parentPath.parentPath.type': 'ImportDeclaration',
-        // 'parent.parent.source.type': 'StringLiteral',
-        // 'parent.parent.source.value': /\/common\/utils\/dictionary\/dictionary$/
-      }
-    }  
-  },
-  resolve: {
-    type: /.*/,
-    validate: {
-      'inList': true,
-      'key': 0,
-      'listKey': /^arguments$/,
-    }
-  }
-}
-
-const scout2 = {
-  search: {
-    node: {
-      type: 'CallExpression',
-      opts: {
-        callee: {
-          type: 'Identifier',
-          opts: {
-            name: 'getDictionaryString'
-          }
-        }
-      }
-    },
-  }
-};
 
 const scout3 = 'getMyString($$resolve)'; //no
 // const scout4 = 'getMyString(<resolve>)'; //possible
@@ -86,33 +43,16 @@ const scout8 = 'const welcomeMessageKey = firstName ? WELCOME_MESSAGE_KEY : ANON
 const scout9 = '<Routes />';
 const scout10 = '<Headline>{this.headlineMessage}</Headline>';
 const scout11 = 'import { getUserFirstName } from \'./bootstrap/bootstrap\';';
-
+const scout12 = 'key={previousSearchTerm}';
 
 //build traverse from scout that returns all matching nodes
 //identify <resolve>'s hunt for StringLiteral values
 
-
-
 function getScoutFunction(scout) {
-  const allowed = [
-    'ExpressionStatement',
-    'CallExpression',
-    'Identifier',
-    'AssignmentExpression',
-    'ObjectExpression',
-    'ObjectProperty'
-  ]
-
   const skipNodes = [
     'Program'
   ];
 
-  const opts = [
-    'inList',
-    'listKey',
-    'key',
-    'parentKey',
-  ]
   // create valid scoutString string where options are replaced
   // replace <resolve> with internal Identifier, only one <resolve> is allowed
 
@@ -130,86 +70,25 @@ function getScoutFunction(scout) {
   // const scoutAst = parser.parse(code);
   const scoutAst = getAst(code);
 
-  // console.log('ast', JSON.stringify(ast, null, 2));
-
-  // let scoutVisitorObject = {};
-  // const scoutStack = []
   let scoutTree = {};
   let treeRef = scoutTree;
 
   traverse(scoutAst, {
     enter(path) {
       if (!skipNodes.includes(path.node.type)) {
-        // console.log('enter', path.node.type);
+        const nodeFingerPrint = Object.assign(getFingerPrint(path), { parent: treeRef });
 
-        //skip first container node
-        // if (treeRef === null) { 
-        //   treeRef = scoutTree
-
-        // } else {
-          const nodeFingerPrint = Object.assign(getFingerPrint(path), { parent: treeRef });
-
-          // if (!treeRef.paths) { // first node in scoutTree
-          //   nodeFingerPrint.pathOpts = {};
-          // }
-  
-          treeRef.paths = treeRef.paths || [];
-          treeRef.paths.push(nodeFingerPrint);
-          treeRef = treeRef.paths[treeRef.paths.length -1];
-        // }
-
-        // scoutStack.push(path);
-        // scoutVisitor[path.node.type] = function(path) {
-        //   console.log('scoutVisitor', path.node.type);
-        //   // path.traverse()
-        //   Object.assign(this.state, { [path.node.type]: path.node.type });
-        // }
+        treeRef.paths = treeRef.paths || [];
+        treeRef.paths.push(nodeFingerPrint);
+        treeRef = treeRef.paths[treeRef.paths.length -1];
       }
     },
     exit(path) {
-      // if (allowed.includes(path.node.type) && (t.isIdentifier(path.node) ? path.node.name : true) ) {
       if (!skipNodes.includes(path.node.type)) {
-        // console.log('exit', path.node.type);
         treeRef = treeRef.parent;
-
-        /*
-        const scoutPath = scoutStack.pop();
-
-        scoutVisitorObject = (scoutVisitorObject => {
-          console.log(scoutVisitorObject);
-          return {
-            [path.node.type]: function(path) {
-              console.log('scoutVisitorObject:', path.node.type);
-              // console.log('keys:', Object.keys(scoutVisitorObject));
-  
-              if (Object.keys(scoutVisitorObject).length) {
-                path.traverse(scoutVisitorObject);
-              }
-            }
-          };
-        })(scoutVisitorObject);
-        */
-        
-        // scoutVisitor[path.node.type] = function(path) {
-        //     console.log('scoutVisitor', path.node.type);
-        // }
-        // console.log('exit scoutPath', path.node.type);
       }
     }
   });
-
-  // console.log('#', t.VISITOR_KEYS['CallExpression']);
-  // console.log('#', t.ALIAS_KEYS['CallExpression']);
-  // console.log('#', t.FLIPPED_ALIAS_KEYS['CallExpression']);
-  // console.log('#', t.NODE_FIELDS['CallExpression']);
-  // console.log('#', t.BUILDER_KEYS['CallExpression']);
-  // console.log('#', t.DEPRECATED_KEYS['CallExpression']);
-  
-  // console.log('#', t.BUILDER_KEYS['Identifier']);
-  // console.log('#', t.NODE_FIELDS['Identifier']);
-
-
-  // console.log('>>', scoutVisitorObject);
 
   // remove top container node (first node) from scoutTree
   // and remove any references to the container node
@@ -233,49 +112,18 @@ function getScoutFunction(scout) {
     scoutTree = {};
   }
 
-  // console.log(JSON.stringify(scoutTree, decycle(), 2));
-
   // add sibling next/prev to path results
   scoutTree = decorateTreeWithSiblingNavigation(scoutTree);
 
   console.log(JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
 
-  // skip container:
-  // treeRef = scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[treeRef.paths.length -1]
-  
-  // const scoutVisitorObject2 = {
-  //   // ExpressionStatement: function(path) {
-  //   //   console.log(path.node.type);
-  //   //   console.log('code', generate(path.node).code);
-  //   //   path.traverse(
-  //   //     //////////////
-  //   //     {
-  //         CallExpression: function(path) {
-  //           console.log(path.node.type);
-  //           console.log('code', generate(path.node).code);
-  //           path.traverse(
-  //             //////////////
-  //             {
-  //               Identifier: function(path) {
-  //                 console.log(path.node.type);
-  //                 console.log('code', generate(path.node).code);
-  //               }
-  //             }
-  //             //////////////
-  //           )
-  //         }
-  //     //   }
-  //     //   //////////////
-  //     // )
-  //   // }
-  // }
 
   const state = [];
   const scoutVisitorObject = createVisitorObject(scoutTree);
+
   // point to first node in scoutTree
   scoutRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
 
-  // console.log('>>', ast);
   traverse(ast, {
     Program: function programVisitor(path) {
       path.traverse(scoutVisitorObject, {
@@ -286,13 +134,6 @@ function getScoutFunction(scout) {
   });
 
   console.log('state', JSON.stringify(cleanupState(state), decycle(), 2));
-
-  // traverse(ast, scoutVisitorObject2);
-  // console.log('>>>');
-
-  // console.log(state);
-  // parse scoutString in ast
-  // build scoutFunction on basis of ast
 }
 
 // getScoutFunction(scout4);
@@ -301,36 +142,5 @@ function getScoutFunction(scout) {
 // getScoutFunction(scout9);
 // getScoutFunction(scout10);
 getScoutFunction(scout11);
-
-/*
-traverse(ast, {
-  Program: function programVisitor(path) {
-      path.traverse({
-          [scout.search.type](path) {
-            if (t.isCallExpression(path.node) &&
-              t.isIdentifier(path.node.callee, { name: 'getDictionaryString'} )
-            ) {
-              console.log(path.node);
-            }
-          }
-      }, {
-          // prerequisite: keySearch.prerequisite,
-          // state,
-      });
-  },
-});
-*/
-// traverse(ast, {
-//   Program: function programVisitor(path) {
-//     path.traverse({
-//       enter(path) {
-//         if (t.isImportDeclaration(path.node)) {
-//           let a = 1;
-//         }
-
-//         path.next();
-//       }
-//     });
-//   }
-// });
+// getScoutFunction(scout12);
 
