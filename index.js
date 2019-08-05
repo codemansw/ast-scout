@@ -27,7 +27,10 @@ const scout12 = 'key={previousSearchTerm}';
 const scout14 = {
   search: 'import { getMyString } from \'./common/utils/dictionary/dictionary\';',
   matches: [{
-    match: './common/utils/dictionary/dictionary',
+    search: 'getMyString',
+    regExpr: /^getAllMyStrings$/
+  }, {
+    search: './common/utils/dictionary/dictionary',
     regExpr: /common\/utils\/dictionary\/dictionary$/
   }],
   paths: [
@@ -37,8 +40,11 @@ const scout14 = {
 
 traverse(ast, {
   Program: function programVisitor(path) {
-    const paths = findPaths(path, scout11);
-    console.log(paths.length, paths[0].node.type);
+    // const paths = findPaths(path, scout4);
+    // const paths = findPaths(path, scout11);
+    const paths = findPaths(path, scout14);
+    // console.log(paths.length);
+    console.log(paths.length, paths.length ? paths[0].node.type : '');
     // path.stop();
   }
 });

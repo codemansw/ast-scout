@@ -55,7 +55,6 @@ const cleanupTree = path => {
 
 module.exports = {
   getAst,
-  getPathProfile,
   cleanupState,
   cleanupTree,
 }

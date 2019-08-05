@@ -2,14 +2,18 @@
 const traverse = require('@babel/traverse').default;
 // const generate = require('@babel/generator').default;
 const has = require("lodash/has");
+const cloneDeep = require("lodash/cloneDeep");
 
-const { createVisitorObject } = require('./core');
+const isString = require("lodash/isString");
+const decycle = require('json-decycle').decycle;
+
+const { createVisitorObject, buildPathProfile } = require('./core');
 const {
   getAst,
-  getPathProfile,
   cleanupState,
   cleanupTree,
 } = require('./utils');
+const { SCOUT_DEBUG = 'false' } = process.env;
 
 const decorateTreeWithSiblingNavigation = (scoutTree) => {
   scoutTree.indexPath = scoutTree.indexPath || '0';
@@ -60,19 +64,25 @@ const groomScoutTree = tree => {
   return tree;
 }
 
-const createVisitorFromScout = scoutString => {
+const createVisitorFromScout = scout => {
+  if (SCOUT_DEBUG === 'true') {
+    console.log(`scout:', ${JSON.stringify(scout, null, 2)}`);
+  }
+  // todo scout validation .....
   const skipNodes = [
     'Program'
   ];
+  const scoutSearch = isString(scout) ? scout : scout.search;
+  const scoutAst = getAst(scoutSearch);
 
-  const scoutAst = getAst(scoutString);
   let scoutTree = {};
   let pathRef = scoutTree;
 
+  // build node structure from provided scout
   traverse(scoutAst, {
     enter(path) {
       if (!skipNodes.includes(path.node.type)) {
-        const pathProfile = Object.assign(getPathProfile(path), { parent: pathRef });
+        const pathProfile = Object.assign(buildPathProfile(path, scout), { parent: pathRef });
 
         pathRef.paths = pathRef.paths || [];
         pathRef.paths.push(pathProfile);
@@ -86,11 +96,14 @@ const createVisitorFromScout = scoutString => {
     }
   });
 
-  scoutTree = groomScoutTree(scoutTree);
-  scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add sibling next/prev to path results
+  scoutTree = groomScoutTree(scoutTree); // cleanup root node from parent or container details
+  scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add next/prev to path siblings
   pathRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
 
-  // console.log(JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
+  if (SCOUT_DEBUG === 'true') {
+    console.log('scoutTree:\n', JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
+  }
+  
   return {
     scoutVisitorObject: createVisitorObject(scoutTree),
     stateObject: {
@@ -105,6 +118,10 @@ const findPaths = (path, scout) => {
   const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout);
 
   path.traverse(scoutVisitorObject, stateObject);
+
+  if (SCOUT_DEBUG === 'true') {
+    console.log('state:\n', JSON.stringify(cleanupState(cloneDeep(stateObject.state)), decycle(), 2));
+  }
 
   if (has(stateObject, 'state.length')) {
     return stateObject.state.reduce( (previousValue, path) => {

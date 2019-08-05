@@ -7,6 +7,9 @@ const isString = require("lodash/isString");
 const isObject = require("lodash/isObject");
 const isBoolean = require("lodash/isBoolean");
 const isArray = require("lodash/isArray");
+const isUndefined = require("lodash/isUndefined");
+
+const { SCOUT_DEBUG = 'false' } = process.env;
 
 const pathOpts = [
   'inList',
@@ -27,24 +30,38 @@ nodeAdditionalKeys = [
   'end',
 ]
 
-checkValue = value => {
+checkValue = (value, key) => {
   if (isString(value) || isNumber(value) || isBoolean(value)) {
     return value;
   } else if (isArray(value)) {
     return 'array';
   } else if (isObject(value)) {
     return 'object';
+  } else if (isUndefined(value)) {
+    return value;
+  } else {
+    console.warn(`core.checkValue: uncovered key:'${key}', value:'${value}'`);
   }
 
   return value;
 }
 
-getPathProfile = path => {
-  const profile = {
+const findScoutMatch = (scout, key, value) => {
+  if (!scout || !scout.matches || !scout.matches.length) {
+    return null;
   }
 
+  const result = scout.matches.filter( match => value === match.search);
+
+  return result.length ? Object.assign({ key }, result[0]) : null;
+}
+
+buildPathProfile = (path, scout) => {
+  const profile = {};
+  let match;
+
   pathOpts.reduce( (previousValue, key) => {
-    previousValue[key] = checkValue(path[key]);
+    previousValue[key] = checkValue(path[key], key);
 
     return previousValue;
   }, profile);
@@ -54,7 +71,17 @@ getPathProfile = path => {
   }
 
   t.BUILDER_KEYS[path.node.type].reduce( (previousValue, key) => {
-    previousValue[key] = checkValue(path.node[key]);
+    // if (SCOUT_DEBUG === 'true') {
+    //   console.log(`BUILDER_KEYS:path.node: ${key}:'${checkValue(path.node[key], key)}'`);
+    // }
+    previousValue[key] = checkValue(path.node[key], key);
+
+    if (match = findScoutMatch(scout, key, path.node[key])) {
+      profile.match = match;
+      if (SCOUT_DEBUG === 'true') {
+        console.log(`match: ${match}`);
+      }  
+    }
 
     return previousValue;
   }, profile.node);
@@ -68,7 +95,7 @@ const matchScout = (path, scout) => {
   // check path:
   const match = Object.keys(scout).reduce( (previousValue, key) => {
     if (isString(scout[key]) && !scoutSkipKeys.includes(key)) { // limit to path key & string values
-      previousValue = previousValue && checkValue(path[key]) === scout[key];
+      previousValue = previousValue && checkValue(path[key], key) === scout[key];
     }
 
     return previousValue;
@@ -77,7 +104,7 @@ const matchScout = (path, scout) => {
   // check path.node:
   return Object.keys(scout.node).reduce( (previousValue, key) => {
     if (isString(scout.node[key])) { // limit to path.node key & string values
-      previousValue = previousValue && checkValue(path.node[key]) === scout.node[key];
+      previousValue = previousValue && checkValue(path.node[key], key) === scout.node[key];
     }
 
     return previousValue;
@@ -86,14 +113,12 @@ const matchScout = (path, scout) => {
 
 const createState = ({
   path,
-  visitorObject,
   parent,
   scout
 }) => {
   const state = {
     type: path.node.type,
     scoutIndexPath: scout.indexPath,
-    // scoutDone: Object.keys(visitorObject).length === 0,
     scoutDone: false,
     node: {},
     pathRef: path,
@@ -101,18 +126,16 @@ const createState = ({
   };
 
   pathOpts.forEach( key => {
-    state[key] = checkValue(path[key]);
+    state[key] = checkValue(path[key], key);
   });
 
   Object.keys(scout.node).forEach( key => {
-    state.node[key] = checkValue(path.node[key]);
+    state.node[key] = checkValue(path.node[key], key);
   });
 
   nodeAdditionalKeys.forEach( key => {
-    state.node[key] = checkValue(path.node[key]);
+    state.node[key] = checkValue(path.node[key], key);
   })
-  
-  // state.node.isDeclaration = t.isDeclaration(path.node);
 
   return state;
 }
@@ -128,14 +151,12 @@ const visitorFunctionFactory = visitorObject => {
       match = matchScout(path, scout);
 
       if (!match && scout.next) {
-        // console.log('next');
         next = true;
         scout = scout.next;
       }
     } while(!match && next);
 
     if (match) {
-      // console.log('match', path.node.type, scout.indexPath);
       const newState = createState({
         path,
         visitorObject,
@@ -143,13 +164,9 @@ const visitorFunctionFactory = visitorObject => {
         scout
       });
 
-      // console.log(Object.keys(visitorObject).length);
-
       if (Object.keys(visitorObject).length) {
         const newScout = scout.paths ? scout.paths[0] : null;
         const newPaths = [];
-
-        // console.log(newScout ? newScout.indexPath : 'null', Object.keys(visitorObject));
 
         path.traverse(visitorObject, {
           scoutTree: newScout,
@@ -162,20 +179,20 @@ const visitorFunctionFactory = visitorObject => {
         }
       }
 
-      // console.log(`${scout && scout.paths ? scout.paths.length : '-'}:${newState && newState.paths ? newState.paths.length : '-'}`);
-      // this.state.push(newState);
-
-      if ((
-        !newState.paths &&
-        !scout.paths
-      ) || (
-        has(scout, 'paths.length') &&
-        has(newState, 'paths.length') &&
-        scout.paths.length === newState.paths.filter( path => path.scoutDone ).length
-      )) {
+      if (
+        (
+          !newState.paths &&
+          !scout.paths
+        ) || 
+        (
+          has(scout, 'paths.length') &&
+          has(newState, 'paths.length') &&
+          scout.paths.length === newState.paths.filter( path => path.scoutDone ).length
+        )
+      ) {
         this.state.push(newState);
         newState.scoutDone = true;
-        path.skip();
+        path.skip(); //skip traversing the children of the current path
       }
 
     }    
@@ -203,6 +220,7 @@ function createVisitorObject(scoutTree) {
 }
 
 module.exports = {
+  buildPathProfile,
   visitorFunctionFactory,
   createVisitorObject,
 }
