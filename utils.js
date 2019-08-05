@@ -16,17 +16,17 @@ const pathOpts = [
   'parentKey',
 ];
 
-getFingerPrint = path => {
-  const nodeFingerPrint = {
+getPathProfile = path => {
+  const profile = {
   }
 
   pathOpts.reduce( (previousValue, key) => {
     previousValue[key] = checkValue(path[key]);
 
     return previousValue;
-  }, nodeFingerPrint);
+  }, profile);
 
-  nodeFingerPrint.node = {
+  profile.node = {
     type: path.node.type,
   }
 
@@ -34,9 +34,11 @@ getFingerPrint = path => {
     previousValue[key] = checkValue(path.node[key]);
 
     return previousValue;
-  }, nodeFingerPrint.node);
+  }, profile.node);
 
-  return nodeFingerPrint;
+  profile.nodeIsDeclaration = t.isDeclaration(path.node);
+
+  return profile;
 }
 
 checkValue = value => {
@@ -109,6 +111,8 @@ const createState = ({
   nodeAdditionalKeys.forEach( key => {
     state.node[key] = checkValue(path.node[key]);
   })
+  
+  // state.node.isDeclaration = t.isDeclaration(path.node);
 
   return state;
 }
@@ -252,7 +256,7 @@ const cleanupTree = path => {
 }
 
 module.exports = {
-  getFingerPrint,
+  getPathProfile,
   createVisitorObject,
   decorateTreeWithSiblingNavigation,
   cleanupState,

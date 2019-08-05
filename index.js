@@ -11,7 +11,7 @@ const generate = require('@babel/generator').default;
 const t = require('@babel/types');
 const decycle = require('json-decycle').decycle;
 const {
-  getFingerPrint,
+  getPathProfile,
   createVisitorObject,
   decorateTreeWithSiblingNavigation,
   cleanupState,
@@ -27,14 +27,82 @@ const getAst = (code, config = {}) => {
     return parser.parse(code, Object.assign(defaultConfig, config));
 };
 
-const filePath = path.resolve('.', 'test-data/test.js');
-// const filePath = path.resolve('.', 'test-data/App.js');
+const groomScoutTree = tree => {
+  // remove top container node (first node) from scoutTree
+  // for any type but "*Declaration"
+  // and remove any references to the container node
+  if (
+    tree &&
+    tree.paths &&
+    tree.paths.length &&
+    tree.paths[0].paths &&
+    tree.paths[0].paths.length
+  ) {
+    if (tree.paths[0].nodeIsDeclaration === false) {
+      tree = {
+        paths: tree.paths[0].paths
+      };
+    }
+    delete tree.paths[0].parent;
+    delete tree.paths[0].inList;
+    delete tree.paths[0].listKey;
+    delete tree.paths[0].key;
+    delete tree.paths[0].parentKey;
+  
+  } else {
+    tree = {};
+  }
+
+  return tree;
+}
+
+const createVisitorFromScout = scoutString => {
+  const skipNodes = [
+    'Program'
+  ];
+
+  const scoutAst = getAst(scoutString);
+  let scoutTree = {};
+  let pathRef = scoutTree;
+
+  traverse(scoutAst, {
+    enter(path) {
+      if (!skipNodes.includes(path.node.type)) {
+        const pathProfile = Object.assign(getPathProfile(path), { parent: pathRef });
+
+        pathRef.paths = pathRef.paths || [];
+        pathRef.paths.push(pathProfile);
+        pathRef = pathRef.paths[pathRef.paths.length -1];
+      }
+    },
+    exit(path) {
+      if (!skipNodes.includes(path.node.type)) {
+        pathRef = pathRef.parent;
+      }
+    }
+  });
+
+  scoutTree = groomScoutTree(scoutTree);
+  scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add sibling next/prev to path results
+  pathRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
+
+  // console.log(JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
+  return {
+    scoutVisitorObject: createVisitorObject(scoutTree),
+    stateObject: {
+      scoutTree: pathRef,
+      state: [],
+      parent: null
+    }
+  };
+}
+
+// const filePath = path.resolve('.', 'test-data/test.js');
+const filePath = path.resolve('.', 'test-data/App.js');
 const code = fs.readFileSync(filePath).toString();
 const ast = getAst(code);
 
-
-const scout3 = 'getMyString($$resolve)'; //no
-// const scout4 = 'getMyString(<resolve>)'; //possible
+const scout3 = 'getMyString(<resolve:any>)'; //
 const scout4 = 'getMyString(welcomeMessageKey)'; //possible
 const scout5 = '</^getMyString$/>(<resolve>)'; //possible
 const scout6 = '${/^getMyString$/}(<resolve>)'; //no
@@ -45,102 +113,12 @@ const scout10 = '<Headline>{this.headlineMessage}</Headline>';
 const scout11 = 'import { getUserFirstName } from \'./bootstrap/bootstrap\';';
 const scout12 = 'key={previousSearchTerm}';
 
-//build traverse from scout that returns all matching nodes
-//identify <resolve>'s hunt for StringLiteral values
+const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout11);
 
-function getScoutFunction(scout) {
-  const skipNodes = [
-    'Program'
-  ];
-
-  // create valid scoutString string where options are replaced
-  // replace <resolve> with internal Identifier, only one <resolve> is allowed
-
-  // const match = scout.match(/<[^>]*>/g);
-  // const resolveRegExp = /<[^>]*>/g;
-  const resolveRegExp = /<resolve>/g;
-  const scoutMatch = scout.match(resolveRegExp);
-
-  if (scoutMatch && scoutMatch.length > 1) {
-    console.warn('getScoutFunction: only one <resolve> option is supported!');
-    return null;
+traverse(ast, {
+  Program: function programVisitor(path) {
+    path.traverse(scoutVisitorObject, stateObject);
   }
+});
 
-  const code = scout.replace(resolveRegExp);
-  // const scoutAst = parser.parse(code);
-  const scoutAst = getAst(code);
-
-  let scoutTree = {};
-  let treeRef = scoutTree;
-
-  traverse(scoutAst, {
-    enter(path) {
-      if (!skipNodes.includes(path.node.type)) {
-        const nodeFingerPrint = Object.assign(getFingerPrint(path), { parent: treeRef });
-
-        treeRef.paths = treeRef.paths || [];
-        treeRef.paths.push(nodeFingerPrint);
-        treeRef = treeRef.paths[treeRef.paths.length -1];
-      }
-    },
-    exit(path) {
-      if (!skipNodes.includes(path.node.type)) {
-        treeRef = treeRef.parent;
-      }
-    }
-  });
-
-  // remove top container node (first node) from scoutTree
-  // and remove any references to the container node
-  if (
-    scoutTree &&
-    scoutTree.paths &&
-    scoutTree.paths.length &&
-    scoutTree.paths[0].paths &&
-    scoutTree.paths[0].paths.length
-  ) {
-    scoutTree = {
-      paths: scoutTree.paths[0].paths
-    };
-    delete scoutTree.paths[0].parent;
-    delete scoutTree.paths[0].inList;
-    delete scoutTree.paths[0].listKey;
-    delete scoutTree.paths[0].key;
-    delete scoutTree.paths[0].parentKey;
-  
-  } else {
-    scoutTree = {};
-  }
-
-  // add sibling next/prev to path results
-  scoutTree = decorateTreeWithSiblingNavigation(scoutTree);
-
-  console.log(JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
-
-
-  const state = [];
-  const scoutVisitorObject = createVisitorObject(scoutTree);
-
-  // point to first node in scoutTree
-  scoutRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
-
-  traverse(ast, {
-    Program: function programVisitor(path) {
-      path.traverse(scoutVisitorObject, {
-        scoutTree: scoutRef,
-        state,
-        parent: null });
-    }
-  });
-
-  console.log('state', JSON.stringify(cleanupState(state), decycle(), 2));
-}
-
-// getScoutFunction(scout4);
-// getScoutFunction(scout7);
-// getScoutFunction(scout8);
-// getScoutFunction(scout9);
-// getScoutFunction(scout10);
-getScoutFunction(scout11);
-// getScoutFunction(scout12);
-
+console.log('state', JSON.stringify(cleanupState(stateObject.state), decycle(), 2));
