@@ -30,7 +30,6 @@ const scout12 = {
   },
   matches: [{
     search: 'previousSearchTerm',
-    // regExpr: /^previousSearchTerm$/,
     marked: true
   }],
 };

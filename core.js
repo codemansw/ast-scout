@@ -20,6 +20,8 @@ checkValue = (value, key) => {
     return 'object';
   } else if (isUndefined(value)) {
     return value;
+  } else if (value === null) {
+    return value;
   } else {
     console.warn(`core.checkValue: uncovered key:'${key}', value:'${value}'`);
   }
