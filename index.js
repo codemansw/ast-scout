@@ -38,16 +38,12 @@ const scout14 = {
 
 traverse(ast, {
   Program: function programVisitor(path) {
-    // const paths = findPaths(path, scout4);
-    // const paths = findPaths(path, scout11);
-
+    // const { searches, matches } = findPaths(path, scout4);
+    // const { searches, matches } = findPaths(path, scout11);
     const { searches, matches } = findPaths(path, scout14);
 
     console.log('searches', searches.length);
     console.log('matches', matches.length);
-
-    // console.log(paths.length, paths.length ? paths[0].node.type : '');
-    // path.stop();
   }
 });
 

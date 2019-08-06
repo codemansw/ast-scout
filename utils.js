@@ -13,44 +13,44 @@ const getAst = (code, config = {}) => {
   return parser.parse(code, Object.assign(defaultConfig, config));
 };
 
-const cleanupState = state => state.map( path => {
+const cleanupState = state => state.map( route => {
     // delete path.parent;
     // delete path.pathRef;
-    if (path.parent) {
-      path.parent = '...'
+    if (route.parent) {
+      route.parent = '...'
     }
-    if (path.pathRef) {
-      path.pathRef = '...'
+    if (route.pathRef) {
+      route.pathRef = '...'
     }
     
-    if (path.paths) {
-      path.paths = cleanupState(path.paths);
+    if (route.routes) {
+      route.routes = cleanupState(route.routes);
     }
 
-    return path;
+    return route;
   }
 );
 
-const cleanupTree = path => {
-  let newPath = Object.assign({}, path);
+const cleanupTree = route => {
+  let newRoute = Object.assign({}, route);
 
-  if (newPath.parent) {
-    newPath.parent = '...';
+  if (newRoute.parent) {
+    newRoute.parent = '...';
   }
-  if (newPath.next) {
-    newPath.next = '...';
+  if (newRoute.next) {
+    newRoute.next = '...';
   }
-  if (newPath.prev) {
-    newPath.prev = '...';
+  if (newRoute.prev) {
+    newRoute.prev = '...';
   }
 
-  if (newPath.paths) {
-    newPath.paths = newPath.paths.map( path => {
-      return cleanupTree(path);
+  if (newRoute.routes) {
+    newRoute.routes = newRoute.routes.map( route => {
+      return cleanupTree(route);
     })
   }
 
-  return newPath;
+  return newRoute;
 }
 
 module.exports = {

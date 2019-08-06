@@ -15,53 +15,53 @@ const {
 } = require('./utils');
 const { SCOUT_DEBUG = 'false' } = process.env;
 
-const decorateTreeWithSiblingNavigation = (scoutTree) => {
-  scoutTree.indexPath = scoutTree.indexPath || '0';
+const decorateTreeWithSiblingNavigation = (route) => {
+  route.index = route.index || '0';
 
-  if (scoutTree.paths) {
-    scoutTree.paths.map( (path, index) => {
-      path.indexPath = `${scoutTree.indexPath}.${index}`;
-      if (scoutTree.paths.length > index + 1) {
-        path.next = scoutTree.paths[index + 1];
+  if (route.routes) {
+    route.routes.map( (path, index) => {
+      path.index = `${route.index}.${index}`;
+      if (route.routes.length > index + 1) {
+        path.next = route.routes[index + 1];
       }
-      if (index < scoutTree.paths.length + 1) {
-        path.prev = scoutTree.paths[index - 1];
+      if (index < route.routes.length + 1) {
+        path.prev = route.routes[index - 1];
       }
 
       return decorateTreeWithSiblingNavigation(path);
     });
   };
 
-  return scoutTree;
+  return route;
 }
 
-const groomScoutTree = tree => {
+const groom = route => {
   // remove top container node (first node) from scoutTree
   // for any type but "*Declaration"
   // and remove any references to the container node
   if (
-    tree &&
-    tree.paths &&
-    tree.paths.length &&
-    tree.paths[0].paths &&
-    tree.paths[0].paths.length
+    route &&
+    route.routes &&
+    route.routes.length &&
+    route.routes[0].routes &&
+    route.routes[0].routes.length
   ) {
-    if (tree.paths[0].nodeIsDeclaration === false) {
-      tree = {
-        paths: tree.paths[0].paths
+    if (route.routes[0].nodeIsDeclaration === false) {
+      route = {
+        routes: route.routes[0].routes
       };
     }
-    delete tree.paths[0].parent;
-    delete tree.paths[0].inList;
-    delete tree.paths[0].listKey;
-    delete tree.paths[0].key;
-    delete tree.paths[0].parentKey;
+    delete route.routes[0].parent;
+    delete route.routes[0].inList;
+    delete route.routes[0].listKey;
+    delete route.routes[0].key;
+    delete route.routes[0].parentKey;
   
   } else {
-    tree = {};
+    route = {};
   }
 
-  return tree;
+  return route;
 }
 
 const createVisitorFromScout = scout => {
@@ -75,77 +75,77 @@ const createVisitorFromScout = scout => {
   const scoutSearch = isString(scout) ? scout : scout.search;
   const scoutAst = getAst(scoutSearch);
 
-  let scoutTree = {};
-  let ref = scoutTree;
+  let routeTree = {};
+  let route = routeTree;
 
   // build node structure from provided scout
   traverse(scoutAst, {
     enter(path) {
       if (!skipNodes.includes(path.node.type)) {
-        const pathProfile = Object.assign(buildPathProfile(path, scout), { parent: ref });
+        const pathProfile = Object.assign(buildPathProfile(path, scout), { parent: route });
 
-        ref.paths = ref.paths || [];
-        ref.paths.push(pathProfile);
-        ref = ref.paths[ref.paths.length -1];
+        route.routes = route.routes || [];
+        route.routes.push(pathProfile);
+        route = route.routes[route.routes.length -1];
       }
     },
     exit(path) {
       if (!skipNodes.includes(path.node.type)) {
-        ref = ref.parent;
+        route = route.parent;
       }
     }
   });
 
-  scoutTree = groomScoutTree(scoutTree); // cleanup root node from parent or container details
-  scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add next/prev to path siblings
-  ref = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
+  routeTree = groom(routeTree); // cleanup root node from parent or container details
+  routeTree = decorateTreeWithSiblingNavigation(routeTree); // add next/prev to path siblings
+  route = routeTree && routeTree.routes && routeTree.routes.length ? routeTree.routes[0] : null;
 
   if (SCOUT_DEBUG === 'true') {
-    console.log('scoutTree:\n', JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
+    console.log('routeTree:\n', JSON.stringify(cleanupTree(routeTree), decycle(), 2));
   }
   
   return {
-    scoutVisitorObject: createVisitorObject(scoutTree),
+    scoutVisitorObject: createVisitorObject(routeTree),
     stateObject: {
-      scoutTree: ref,
+      route,
       state: [],
       parent: null
     }
   };
 }
 
-const collectSearchPaths = paths => {
-  return paths.reduce( (previousValue, path) => {
-    if (path.scout && path.scout.done && path.pathRef) {
-      previousValue.push(path.pathRef);
+const collectSearchPreys = routes => {
+  return routes.reduce( (previousValue, route) => {
+    if (route.scout && route.scout.done && route.pathRef) {
+      previousValue.push(route.pathRef);
     }
 
     return previousValue;
   }, []);  
 }
 
-const collectMatchPaths = paths => {
-  return paths.reduce( (previousValue, path) => {
-    if (path.scout && path.scout.done && path.scout.marked && path.pathRef) {
-      previousValue.push(path.pathRef);
+const collectMatchPreys = routes => {
+  return routes.reduce( (previousValue, route) => {
+    if (route.scout && route.scout.done && route.scout.marked && route.pathRef) {
+      previousValue.push(route.pathRef);
     }
 
-    if (path.paths) {
-      previousValue.push( ...collectMatchPaths(path.paths));
+    if (route.routes) {
+      previousValue.push( ...collectMatchPreys(route.routes));
     }
 
     return previousValue;
   }, []);  
 }
 
-const deDuplicatePaths = (previousValue, path) => {
+const deDuplicatePreys = (previousValue, route) => {
   if (
-    has(path, 'node.start') &&
-    has(path, 'node.end') &&
-    previousValue.filter( pathInList => path.node.start === pathInList.node.start &&
-      path.node.end === pathInList.node.end).length === 0  
+    has(route, 'node.start') &&
+    has(route, 'node.end') &&
+    previousValue.filter( pathInList => route.node.start === pathInList.node.start &&
+      route.node.end === pathInList.node.end).length === 0  
   ) {
-    previousValue.push(path);
+    previousValue.push(route);
   }
 
   return previousValue;
@@ -166,8 +166,8 @@ const findPaths = (path, scout) => {
   }
 
   if (has(stateObject, 'state.length')) {
-    pathsObject.searches = collectSearchPaths(stateObject.state);
-    pathsObject.matches = collectMatchPaths(stateObject.state).reduce(deDuplicatePaths, []);
+    pathsObject.searches = collectSearchPreys(stateObject.state);
+    pathsObject.matches = collectMatchPreys(stateObject.state).reduce(deDuplicatePreys, []);
   }
 
   return pathsObject;

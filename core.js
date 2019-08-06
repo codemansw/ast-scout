@@ -8,27 +8,8 @@ const isObject = require("lodash/isObject");
 const isBoolean = require("lodash/isBoolean");
 const isArray = require("lodash/isArray");
 const isUndefined = require("lodash/isUndefined");
-
+const { PATH_OPTS, ROUTE_SKIP_KEYS, NODE_ADDITIONAL_KEYS } = require('./constants');
 const { SCOUT_DEBUG = 'false' } = process.env;
-
-const pathOpts = [
-  'inList',
-  'listKey',
-  'key',
-  'parentKey',
-];
-
-scoutSkipKeys = [
-  'next',
-  'prev',
-  'parent',
-  'indexPath',
-]
-
-nodeAdditionalKeys = [
-  'start',
-  'end',
-]
 
 checkValue = (value, key) => {
   if (isString(value) || isNumber(value) || isBoolean(value)) {
@@ -60,7 +41,7 @@ buildPathProfile = (path, scout) => {
   const profile = {};
   let match;
 
-  pathOpts.reduce( (previousValue, key) => {
+  PATH_OPTS.reduce( (previousValue, key) => {
     previousValue[key] = checkValue(path[key], key);
 
     return previousValue;
@@ -75,9 +56,6 @@ buildPathProfile = (path, scout) => {
 
     if (match = findScoutMatch(scout, key, path.node[key])) {
       profile.match = match;
-      if (SCOUT_DEBUG === 'true') {
-        console.log(`match: ${match}`);
-      }  
     }
 
     return previousValue;
@@ -104,27 +82,27 @@ const checkMatch = (match, value, key) => {
   return false;
 }
 
-const matchScout = (path, scout) => {
+const matchRoute = (path, route) => {
   // check path:
-  let match = Object.keys(scout).reduce( (previousValue, key) => {
-    if (isString(scout[key]) && !scoutSkipKeys.includes(key)) { // limit to path key & string values
-      previousValue = checkValue(path[key], key) === scout[key];
+  let match = Object.keys(route).reduce( (previousValue, key) => {
+    if (isString(route[key]) && !ROUTE_SKIP_KEYS.includes(key)) { // limit to path key & string values
+      previousValue = checkValue(path[key], key) === route[key];
     }
 
     return previousValue;
   }, true);
 
   let scoutMatch = false; //indicates matching one of the scout defined matches
-  let scoutMarked = false; //add marking for later paths resolving
+  let routeMarked = false; //add marking for later paths resolving
 
   // check path.node:
-  match = Object.keys(scout.node).reduce( (previousValue, key) => {
-    if (isString(scout.node[key])) { // limit to path.node key & string values
-      const valueCheck = checkValue(path.node[key], key) === scout.node[key];
-      const matchCheck = checkMatch(scout.match, path.node[key], key);
+  match = Object.keys(route.node).reduce( (previousValue, key) => {
+    if (isString(route.node[key])) { // limit to path.node key & string values
+      const valueCheck = checkValue(path.node[key], key) === route.node[key];
+      const matchCheck = checkMatch(route.match, path.node[key], key);
 
       scoutMatch = scoutMatch || matchCheck;
-      scoutMarked = scoutMarked || (scout.match && scout.match.marked && scoutMatch);
+      routeMarked = routeMarked || (route.match && route.match.marked && scoutMatch);
 
       previousValue = previousValue && (valueCheck || matchCheck);
     }
@@ -134,41 +112,41 @@ const matchScout = (path, scout) => {
 
   return {
     match,
-    scoutMarked
+    routeMarked
   }
 }
 
 const createState = ({
   path,
   parent,
-  scout,
-  scoutMarked,
+  route,
+  routeMarked,
 }) => {
   const state = {
     type: path.node.type,
     node: {},
     scout: {
-      indexPath: scout.indexPath,
+      index: route.index,
       done: false,
     },
     pathRef: path,
     parent,
   };
 
-  pathOpts.forEach( key => {
+  PATH_OPTS.forEach( key => {
     state[key] = checkValue(path[key], key);
   });
 
-  Object.keys(scout.node).forEach( key => {
+  Object.keys(route.node).forEach( key => {
     state.node[key] = checkValue(path.node[key], key);
   });
 
-  nodeAdditionalKeys.forEach( key => {
+  NODE_ADDITIONAL_KEYS.forEach( key => {
     state.node[key] = checkValue(path.node[key], key);
   })
   
-  if (scoutMarked) {
-    state.scout.marked = scoutMarked;
+  if (routeMarked) {
+    state.scout.marked = routeMarked;
   }
 
   return state;
@@ -177,21 +155,21 @@ const createState = ({
 const visitorFunctionFactory = visitorObject => {
   return function(path) {
     let match = false;
-    let scoutMarked = false;
-    let scout = this.scoutTree;
+    let routeMarked = false;
+    let route = this.route;
     let next = false;
 
     do {
       next = false;
 
-      const result = matchScout(path, scout);
+      const result = matchRoute(path, route);
 
       match = result.match;
-      scoutMarked = result.scoutMarked;
+      routeMarked = result.routeMarked;
 
-      if (!match && scout.next) {
+      if (!match && route.next) {
         next = true;
-        scout = scout.next;
+        route = route.next;
       }
     } while(!match && next);
 
@@ -200,34 +178,34 @@ const visitorFunctionFactory = visitorObject => {
         path,
         visitorObject,
         parent: this.parent,
-        scout,
-        scoutMarked,
+        route,
+        routeMarked,
       });
 
       if (Object.keys(visitorObject).length) {
-        const newScout = scout.paths ? scout.paths[0] : null;
-        const newPaths = [];
+        const newScout = route.routes ? route.routes[0] : null;
+        const newPreys = [];
 
         path.traverse(visitorObject, {
-          scoutTree: newScout,
-          state: newPaths,
+          route: newScout,
+          state: newPreys,
           parent: newState,
         });
 
-        if (newPaths.length) {
-          newState.paths = newState.paths ? newState.paths.push(...newPaths) : [...newPaths];
+        if (newPreys.length) {
+          newState.routes = newState.routes ? newState.routes.push(...newPreys) : [...newPreys];
         }
       }
 
       if (
         (
-          !newState.paths &&
-          !scout.paths
+          !newState.routes &&
+          !route.routes
         ) || 
         (
-          has(scout, 'paths.length') &&
-          has(newState, 'paths.length') &&
-          scout.paths.length === newState.paths.filter( path => path.scout.done ).length
+          has(route, 'routes.length') &&
+          has(newState, 'routes.length') &&
+          route.routes.length === newState.routes.filter( path => path.scout.done ).length
         )
       ) {
         this.state.push(newState);
@@ -239,20 +217,20 @@ const visitorFunctionFactory = visitorObject => {
   }
 }
 
-function createVisitorObject(scoutTree) {
-  let scoutRefs = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths : [];
+function createVisitorObject(routeTree) {
+  let routes = routeTree && routeTree.routes && routeTree.routes.length ? routeTree.routes : [];
 
-  if (scoutRefs.length === 0) {
+  if (routes.length === 0) {
     return {}
   }
 
   const visitor = {};
   
-  scoutRefs.forEach( scout => {
-    const visitorObject = createVisitorObject(scout);
+  routes.forEach( route => {
+    const visitorObject = createVisitorObject(route);
 
-    if (!visitor[scout.node.type]) {
-      visitor[scout.node.type] = visitorFunctionFactory(visitorObject);
+    if (!visitor[route.node.type]) {
+      visitor[route.node.type] = visitorFunctionFactory(visitorObject);
     }
   });
 
