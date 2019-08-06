@@ -1,6 +1,5 @@
-// const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
-// const generate = require('@babel/generator').default;
+const isObject = require("lodash/isObject");
 const has = require("lodash/has");
 const cloneDeep = require("lodash/cloneDeep");
 
@@ -19,25 +18,25 @@ const decorateTreeWithSiblingNavigation = (route) => {
   route.index = route.index || '0';
 
   if (route.routes) {
-    route.routes.map( (path, index) => {
-      path.index = `${route.index}.${index}`;
+    route.routes.map( (subRoute, index) => {
+      subRoute.index = `${route.index}.${index}`;
       if (route.routes.length > index + 1) {
-        path.next = route.routes[index + 1];
+        subRoute.next = route.routes[index + 1];
       }
       if (index < route.routes.length + 1) {
-        path.prev = route.routes[index - 1];
+        subRoute.prev = route.routes[index - 1];
       }
 
-      return decorateTreeWithSiblingNavigation(path);
+      return decorateTreeWithSiblingNavigation(subRoute);
     });
   };
 
   return route;
 }
 
-const groom = route => {
+const groom = (route, startType) => {
   // remove top container node (first node) from scoutTree
-  // for any type but "*Declaration"
+  // for any type but "*Declaration" or when startType matches the first node type
   // and remove any references to the container node
   if (
     route &&
@@ -46,7 +45,10 @@ const groom = route => {
     route.routes[0].routes &&
     route.routes[0].routes.length
   ) {
-    if (route.routes[0].nodeIsDeclaration === false) {
+    if (
+      route.routes[0].nodeIsDeclaration === false &&
+      !startType && !route.node && route.node.type !== startType
+    ) {
       route = {
         routes: route.routes[0].routes
       };
@@ -64,16 +66,47 @@ const groom = route => {
   return route;
 }
 
+const relayStartRoute = (route, startType) => {
+  if (!route.routes) {
+    return route;
+  }
+
+  let startRoutes = route.routes.reduce( (previousValue, subRoute) => {
+    if (subRoute.node && subRoute.node.type === startType) {
+      previousValue.push(subRoute);
+    }
+
+    return previousValue;
+  }, []);
+
+  if (startRoutes.length) {
+    return startRoutes[0]; // first matching path gets all
+  }
+
+  startRoutes = route.routes.reduce( (previousValue, subRoute) => {
+    previousValue.push(relayStartRoute(subRoute, startType));
+
+    return previousValue;
+  }, []);
+
+  if (startRoutes.length) {
+    return startRoutes[0]; // first matching path gets all
+    
+  } else {
+    return route; //no matches at sub levels of the tree
+  }
+}
+
 const createVisitorFromScout = scout => {
+  // todo scout validation .....
   if (SCOUT_DEBUG === 'true') {
     console.log(`scout:', ${JSON.stringify(scout, null, 2)}`);
   }
-  // todo scout validation .....
   const skipNodes = [
     'Program'
   ];
   const scoutSearch = isString(scout) ? scout : scout.search;
-  const scoutAst = getAst(scoutSearch);
+  const scoutAst = isString(scoutSearch) ? getAst(scoutSearch) : getAst(scoutSearch.context);
 
   let routeTree = {};
   let route = routeTree;
@@ -96,7 +129,19 @@ const createVisitorFromScout = scout => {
     }
   });
 
-  routeTree = groom(routeTree); // cleanup root node from parent or container details
+  if (isObject(scoutSearch)) {
+    const route = relayStartRoute(routeTree, scoutSearch.startType);
+
+    routeTree = {
+      routes: []
+    };
+
+    if (route) {
+      routeTree.routes.push(route);
+    }
+  }
+
+  routeTree = groom(routeTree, scoutSearch.startType); // cleanup root node from parent or container details
   routeTree = decorateTreeWithSiblingNavigation(routeTree); // add next/prev to path siblings
   route = routeTree && routeTree.routes && routeTree.routes.length ? routeTree.routes[0] : null;
 

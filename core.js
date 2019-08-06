@@ -75,7 +75,7 @@ const checkMatch = (match, value, key) => {
     return false; //skip
   }
 
-  if (match.regExpr.test(value)) {
+  if (match.regExpr ? match.regExpr.test(value) : (new RegExp(match.search)).test(value)) {
     return true;
   }
 

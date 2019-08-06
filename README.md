@@ -1,2 +1,2 @@
 # ast-scout
-Search and report about nodes in an abstract syntax tree
+Define scouts to search and report about specific nodes in a (Babylon) abstract syntax tree.

@@ -23,7 +23,17 @@ const scout8 = 'const welcomeMessageKey = firstName ? WELCOME_MESSAGE_KEY : ANON
 const scout9 = '<Routes />';
 const scout10 = '<Headline>{this.headlineMessage}</Headline>';
 const scout11 = 'import { getUserFirstName } from \'./bootstrap/bootstrap\';';
-const scout12 = 'key={previousSearchTerm}';
+const scout12 = {
+  search: {
+    context: '<div key={previousSearchTerm} />',
+    startType: 'JSXAttribute'
+  },
+  matches: [{
+    search: 'previousSearchTerm',
+    // regExpr: /^previousSearchTerm$/,
+    marked: true
+  }],
+};
 const scout14 = {
   search: 'import { getMyString } from \'./common/utils/dictionary/dictionary\';',
   matches: [{
@@ -34,13 +44,14 @@ const scout14 = {
     search: './common/utils/dictionary/dictionary',
     regExpr: /common\/utils\/dictionary\/dictionary$/
   }],
-}
+};
 
 traverse(ast, {
   Program: function programVisitor(path) {
     // const { searches, matches } = findPaths(path, scout4);
     // const { searches, matches } = findPaths(path, scout11);
-    const { searches, matches } = findPaths(path, scout14);
+    // const { searches, matches } = findPaths(path, scout14);
+    const { searches, matches } = findPaths(path, scout12);
 
     console.log('searches', searches.length);
     console.log('matches', matches.length);

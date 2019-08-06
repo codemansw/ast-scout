@@ -1,8 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-console */
-// const generate = require('@babel/generator').default;
 const parser = require('@babel/parser');
-// const traverse = require('@babel/traverse').default;
 
 const getAst = (code, config = {}) => {
   const defaultConfig = {
@@ -14,8 +12,6 @@ const getAst = (code, config = {}) => {
 };
 
 const cleanupState = state => state.map( route => {
-    // delete path.parent;
-    // delete path.pathRef;
     if (route.parent) {
       route.parent = '...'
     }
