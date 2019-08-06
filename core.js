@@ -71,9 +71,6 @@ buildPathProfile = (path, scout) => {
   }
 
   t.BUILDER_KEYS[path.node.type].reduce( (previousValue, key) => {
-    // if (SCOUT_DEBUG === 'true') {
-    //   console.log(`BUILDER_KEYS:path.node: ${key}:'${checkValue(path.node[key], key)}'`);
-    // }
     previousValue[key] = checkValue(path.node[key], key);
 
     if (match = findScoutMatch(scout, key, path.node[key])) {
@@ -91,36 +88,69 @@ buildPathProfile = (path, scout) => {
   return profile;
 }
 
+const checkMatch = (match, value, key) => {
+  if (!match || key === 'type') {
+    return false; //skip
+  }
+
+  if (key !== match.key) {
+    return false; //skip
+  }
+
+  if (match.regExpr.test(value)) {
+    return true;
+  }
+
+  return false;
+}
+
 const matchScout = (path, scout) => {
   // check path:
-  const match = Object.keys(scout).reduce( (previousValue, key) => {
+  let match = Object.keys(scout).reduce( (previousValue, key) => {
     if (isString(scout[key]) && !scoutSkipKeys.includes(key)) { // limit to path key & string values
-      previousValue = previousValue && checkValue(path[key], key) === scout[key];
+      previousValue = checkValue(path[key], key) === scout[key];
     }
 
     return previousValue;
   }, true);
 
+  let scoutMatch = false; //indicates matching one of the scout defined matches
+  let scoutMarked = false; //add marking for later paths resolving
+
   // check path.node:
-  return Object.keys(scout.node).reduce( (previousValue, key) => {
+  match = Object.keys(scout.node).reduce( (previousValue, key) => {
     if (isString(scout.node[key])) { // limit to path.node key & string values
-      previousValue = previousValue && checkValue(path.node[key], key) === scout.node[key];
+      const valueCheck = checkValue(path.node[key], key) === scout.node[key];
+      const matchCheck = checkMatch(scout.match, path.node[key], key);
+
+      scoutMatch = scoutMatch || matchCheck;
+      scoutMarked = scoutMarked || (scout.match && scout.match.marked && scoutMatch);
+
+      previousValue = previousValue && (valueCheck || matchCheck);
     }
 
     return previousValue;
   }, match);
+
+  return {
+    match,
+    scoutMarked
+  }
 }
 
 const createState = ({
   path,
   parent,
-  scout
+  scout,
+  scoutMarked,
 }) => {
   const state = {
     type: path.node.type,
-    scoutIndexPath: scout.indexPath,
-    scoutDone: false,
     node: {},
+    scout: {
+      indexPath: scout.indexPath,
+      done: false,
+    },
     pathRef: path,
     parent,
   };
@@ -136,6 +166,10 @@ const createState = ({
   nodeAdditionalKeys.forEach( key => {
     state.node[key] = checkValue(path.node[key], key);
   })
+  
+  if (scoutMarked) {
+    state.scout.marked = scoutMarked;
+  }
 
   return state;
 }
@@ -143,12 +177,17 @@ const createState = ({
 const visitorFunctionFactory = visitorObject => {
   return function(path) {
     let match = false;
+    let scoutMarked = false;
     let scout = this.scoutTree;
     let next = false;
 
     do {
       next = false;
-      match = matchScout(path, scout);
+
+      const result = matchScout(path, scout);
+
+      match = result.match;
+      scoutMarked = result.scoutMarked;
 
       if (!match && scout.next) {
         next = true;
@@ -161,7 +200,8 @@ const visitorFunctionFactory = visitorObject => {
         path,
         visitorObject,
         parent: this.parent,
-        scout
+        scout,
+        scoutMarked,
       });
 
       if (Object.keys(visitorObject).length) {
@@ -187,11 +227,11 @@ const visitorFunctionFactory = visitorObject => {
         (
           has(scout, 'paths.length') &&
           has(newState, 'paths.length') &&
-          scout.paths.length === newState.paths.filter( path => path.scoutDone ).length
+          scout.paths.length === newState.paths.filter( path => path.scout.done ).length
         )
       ) {
         this.state.push(newState);
-        newState.scoutDone = true;
+        newState.scout.done = true;
         path.skip(); //skip traversing the children of the current path
       }
 

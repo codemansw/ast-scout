@@ -76,29 +76,29 @@ const createVisitorFromScout = scout => {
   const scoutAst = getAst(scoutSearch);
 
   let scoutTree = {};
-  let pathRef = scoutTree;
+  let ref = scoutTree;
 
   // build node structure from provided scout
   traverse(scoutAst, {
     enter(path) {
       if (!skipNodes.includes(path.node.type)) {
-        const pathProfile = Object.assign(buildPathProfile(path, scout), { parent: pathRef });
+        const pathProfile = Object.assign(buildPathProfile(path, scout), { parent: ref });
 
-        pathRef.paths = pathRef.paths || [];
-        pathRef.paths.push(pathProfile);
-        pathRef = pathRef.paths[pathRef.paths.length -1];
+        ref.paths = ref.paths || [];
+        ref.paths.push(pathProfile);
+        ref = ref.paths[ref.paths.length -1];
       }
     },
     exit(path) {
       if (!skipNodes.includes(path.node.type)) {
-        pathRef = pathRef.parent;
+        ref = ref.parent;
       }
     }
   });
 
   scoutTree = groomScoutTree(scoutTree); // cleanup root node from parent or container details
   scoutTree = decorateTreeWithSiblingNavigation(scoutTree); // add next/prev to path siblings
-  pathRef = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
+  ref = scoutTree && scoutTree.paths && scoutTree.paths.length ? scoutTree.paths[0] : null;
 
   if (SCOUT_DEBUG === 'true') {
     console.log('scoutTree:\n', JSON.stringify(cleanupTree(scoutTree), decycle(), 2));
@@ -107,11 +107,48 @@ const createVisitorFromScout = scout => {
   return {
     scoutVisitorObject: createVisitorObject(scoutTree),
     stateObject: {
-      scoutTree: pathRef,
+      scoutTree: ref,
       state: [],
       parent: null
     }
   };
+}
+
+const collectSearchPaths = paths => {
+  return paths.reduce( (previousValue, path) => {
+    if (path.scout && path.scout.done && path.pathRef) {
+      previousValue.push(path.pathRef);
+    }
+
+    return previousValue;
+  }, []);  
+}
+
+const collectMatchPaths = paths => {
+  return paths.reduce( (previousValue, path) => {
+    if (path.scout && path.scout.done && path.scout.marked && path.pathRef) {
+      previousValue.push(path.pathRef);
+    }
+
+    if (path.paths) {
+      previousValue.push( ...collectMatchPaths(path.paths));
+    }
+
+    return previousValue;
+  }, []);  
+}
+
+const deDuplicatePaths = (previousValue, path) => {
+  if (
+    has(path, 'node.start') &&
+    has(path, 'node.end') &&
+    previousValue.filter( pathInList => path.node.start === pathInList.node.start &&
+      path.node.end === pathInList.node.end).length === 0  
+  ) {
+    previousValue.push(path);
+  }
+
+  return previousValue;
 }
 
 const findPaths = (path, scout) => {
@@ -123,15 +160,17 @@ const findPaths = (path, scout) => {
     console.log('state:\n', JSON.stringify(cleanupState(cloneDeep(stateObject.state)), decycle(), 2));
   }
 
-  if (has(stateObject, 'state.length')) {
-    return stateObject.state.reduce( (previousValue, path) => {
-      if (path.scoutDone && path.pathRef) {
-        previousValue.push(path.pathRef)
-      }
-
-      return previousValue;
-    }, [])
+  const pathsObject = {
+    searches: [],
+    matches: []
   }
+
+  if (has(stateObject, 'state.length')) {
+    pathsObject.searches = collectSearchPaths(stateObject.state);
+    pathsObject.matches = collectMatchPaths(stateObject.state).reduce(deDuplicatePaths, []);
+  }
+
+  return pathsObject;
 }
 
 module.exports = {

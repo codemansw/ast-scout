@@ -28,23 +28,25 @@ const scout14 = {
   search: 'import { getMyString } from \'./common/utils/dictionary/dictionary\';',
   matches: [{
     search: 'getMyString',
-    regExpr: /^getAllMyStrings$/
+    regExpr: /^getMyString$|^getAllMyStrings$/,
+    marked: true
   }, {
     search: './common/utils/dictionary/dictionary',
     regExpr: /common\/utils\/dictionary\/dictionary$/
   }],
-  paths: [
-    'getMyString'
-  ]
 }
 
 traverse(ast, {
   Program: function programVisitor(path) {
     // const paths = findPaths(path, scout4);
     // const paths = findPaths(path, scout11);
-    const paths = findPaths(path, scout14);
-    // console.log(paths.length);
-    console.log(paths.length, paths.length ? paths[0].node.type : '');
+
+    const { searches, matches } = findPaths(path, scout14);
+
+    console.log('searches', searches.length);
+    console.log('matches', matches.length);
+
+    // console.log(paths.length, paths.length ? paths[0].node.type : '');
     // path.stop();
   }
 });

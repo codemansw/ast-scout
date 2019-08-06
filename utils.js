@@ -17,10 +17,10 @@ const cleanupState = state => state.map( path => {
     // delete path.parent;
     // delete path.pathRef;
     if (path.parent) {
-      path.parent = '...cleaned up'
+      path.parent = '...'
     }
     if (path.pathRef) {
-      path.pathRef = '...cleaned up'
+      path.pathRef = '...'
     }
     
     if (path.paths) {
