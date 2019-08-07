@@ -104,7 +104,7 @@ object - Internally babel parser is used for creating a nested visitors structru
 
 ### Scout Examples
 
-### Simple search
+#### Simple search
 
 In the returned searchPaths all results found for CallExpression paths with the exact match of ```getMyString(welcomeMessageKey)``` are listed.
 
@@ -112,7 +112,7 @@ In the returned searchPaths all results found for CallExpression paths with the 
 const scout = 'getMyString(welcomeMessageKey)'
 ```
 
-### Search with regExpr defined in match
+#### Search with regExpr defined in match
 
 In the returned searchPaths all results found for ImportDeclaration paths with the exact match of ```import { getMyString } from \'./common/utils\``` are listed.
 
