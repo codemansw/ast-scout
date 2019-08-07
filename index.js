@@ -5,7 +5,6 @@ const cloneDeep = require("lodash/cloneDeep");
 
 const isString = require("lodash/isString");
 const decycle = require('json-decycle').decycle;
-// const { getAst } = require('./utils');
 
 const { createVisitorObject, buildPathProfile } = require('./core');
 const {
@@ -98,7 +97,7 @@ const relayStartRoute = (route, startType) => {
   }
 }
 
-const createVisitorFromScout = scout => {
+const createVisitorFromScout = (scout, babelConfig) => {
   // todo scout validation .....
   if (SCOUT_DEBUG === 'true') {
     console.log(`scout:', ${JSON.stringify(scout, null, 2)}`);
@@ -107,8 +106,9 @@ const createVisitorFromScout = scout => {
     'Program'
   ];
   const scoutSearch = isString(scout) ? scout : scout.search;
+  const searchCode = isString(scoutSearch) ? scoutSearch : scoutSearch.context;
   // todo: consider using babelParser.parseExpression, see https://babeljs.io/docs/en/babel-parser
-  const scoutAst = isString(scoutSearch) ? getAst(scoutSearch) : getAst(scoutSearch.context);
+  const scoutAst = getAst(searchCode, babelConfig);
 
   let routeTree = {};
   let route = routeTree;
@@ -202,8 +202,8 @@ const deDuplicateRoutes = (previousValue, route) => {
   return previousValue;
 }
 
-const findPaths = (path, scout) => {
-  const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout);
+const findPaths = (path, scout, babelConfig) => {
+  const { scoutVisitorObject, stateObject } = createVisitorFromScout(scout, babelConfig);
 
   path.traverse(scoutVisitorObject, stateObject);
 
@@ -225,6 +225,5 @@ const findPaths = (path, scout) => {
 }
 
 module.exports = {
-  findPaths,
-  getAst
+  findPaths
 };
