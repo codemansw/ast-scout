@@ -14,8 +14,9 @@ This is a tool to search AST for objects on basis of a string of code. This can 
 ### example
 
 ```js
-const traverse = require('@babel/traverse').default;
 const { findPaths, getAst } = require('ast-scout');
+const traverse = require('@babel/traverse').default;
+const generate = require('@babel/generator').default;
 
 const code = `
   import { bla } from 'common/utils';
