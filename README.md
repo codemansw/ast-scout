@@ -101,3 +101,57 @@ string|object - Defines search, matching and path reporting requirements. See be
 #### BabelConfig
 
 object - Internally babel parser is used for creating a nested visitors structrure. Passing this config ensures the AST created from the search parameter is in line with the AST created from the code you want to analyse.
+
+### Scout Examples
+
+### Simple search
+
+In the returned searchPaths all results found for CallExpression paths with the exact match of ```getMyString(welcomeMessageKey)``` are listed.
+
+```js
+const scout = 'getMyString(welcomeMessageKey)'
+```
+
+### Search with regExpr defined in match
+
+In the returned searchPaths all results found for ImportDeclaration paths with the exact match of ```import { getMyString } from \'./common/utils\``` are listed.
+
+In the returned matchPaths all child paths are listed for Identifier ```getMyString``` and in addition for Identifier ```getAllMyStrings```.
+
+To instruct ast-scout to include the matching child node in the matchPaths results use: ```marked: true```.
+
+```js
+const scout = {
+  search: 'import { getMyString } from \'./common/utils\';',
+  match: [{
+    search: 'getMyString',
+    regExpr: /^getMyString$|^getAllMyStrings$/,
+    marked: true
+  }, {
+    search: './common/utils',
+    regExpr: /common\/utils$/
+  }],
+}
+```
+
+#### Search with context and startType
+
+Searching for jsx attribute declarations without providing the containing jsx container in the search term would lead us to result of object definitions types instead. Therefore we can define a search context ( a jsx attribute definition within div tags) and instruct the ast-scout process to start the visitor object tree at the JSXAttribute node.
+
+In the returned searchPaths all paths found for the exact match of ```key={previousSearchTerm}``` are listed.
+
+In the returned matchPaths all child paths are listed for Identifier ```previousSearchTerm```.
+
+```js
+const scout = {
+  search: {
+    context: '<div key={previousSearchTerm} />',
+    startType: 'JSXAttribute'
+  },
+  match: [{
+    search: 'previousSearchTerm',
+    marked: true
+  }],
+}
+```
+
