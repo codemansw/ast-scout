@@ -27,6 +27,10 @@ const code = `
   function foo2() {
     bla('Hello earth!');
   }
+
+  function foo3() {
+    bla(KEY_VALUE);
+  }
 `;
 
 const babelConfig = {
