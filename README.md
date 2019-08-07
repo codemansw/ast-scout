@@ -54,6 +54,7 @@ traverse(ast, {
 
     console.log('searches', searches.length);
     console.log('matches', matches.length);
+
     matches.forEach( path => {
       console.log(`match type: ${path.parentPath.node.arguments[0].type}`);
       console.log(`      code: ${generate(path.parentPath.node.arguments[0]).code}`);
