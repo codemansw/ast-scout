@@ -36,7 +36,7 @@ const decorateTreeWithSiblingNavigation = (route) => {
 
 const groom = (route, startType) => {
   // remove top container node (first node) from scoutTree
-  // for any type but "*Declaration" or when startType matches the first node type
+  // for any type but "*Declaration" or when startType matchPaths the first node type
   // and remove any references to the container node
   if (
     route &&
@@ -93,7 +93,7 @@ const relayStartRoute = (route, startType) => {
     return startRoutes[0]; // first matching path gets all
     
   } else {
-    return route; //no matches at sub levels of the tree
+    return route; //no matchPaths at sub levels of the tree
   }
 }
 
@@ -212,13 +212,13 @@ const findPaths = (path, scout, babelConfig) => {
   }
 
   const pathsObject = {
-    searches: [],
-    matches: []
+    searchPaths: [],
+    matchPaths: []
   }
 
   if (has(stateObject, 'state.length')) {
-    pathsObject.searches = collectSearchRoutes(stateObject.state);
-    pathsObject.matches = collectMatchRoutes(stateObject.state).reduce(deDuplicateRoutes, []);
+    pathsObject.searchPaths = collectSearchRoutes(stateObject.state);
+    pathsObject.matchPaths = collectMatchRoutes(stateObject.state).reduce(deDuplicateRoutes, []);
   }
 
   return pathsObject;

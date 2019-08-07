@@ -30,11 +30,11 @@ checkValue = (value, key) => {
 }
 
 const findScoutMatch = (scout, key, value) => {
-  if (!scout || !scout.matches || !scout.matches.length) {
+  if (!scout || !scout.match || !scout.match.length) {
     return null;
   }
 
-  const result = scout.matches.filter( match => value === match.search);
+  const result = scout.match.filter( match => value === match.search);
 
   return result.length ? Object.assign({ key }, result[0]) : null;
 }
@@ -94,7 +94,7 @@ const matchRoute = (path, route) => {
     return previousValue;
   }, true);
 
-  let scoutMatch = false; //indicates matching one of the scout defined matches
+  let scoutMatch = false; //indicates matching one of the scout defined match
   let routeMarked = false; //add marking for later paths resolving
 
   // check path.node:
