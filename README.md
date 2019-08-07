@@ -37,13 +37,12 @@ const babelConfig = {
 const ast = getAst(code, babelConfig);
 
 const scout = {
-  search: 'bla(\'Hello world!\')',
+  search: 'bla()',
   matches: [{
-    search: 'Hello world!',
-    regExpr: /^.*$/,
-    marked: true
+    search: 'bla',
+    marked: true,
   }]
-}
+};
 
 traverse(ast, {
   Program: function programVisitor(path) {
@@ -51,9 +50,9 @@ traverse(ast, {
 
     console.log('searches', searches.length);
     console.log('matches', matches.length);
-
     matches.forEach( path => {
-      console.log(`match: '${path.node.value}'`);
+      console.log(`match type: ${path.parentPath.node.arguments[0].type}`);
+      console.log(`      code: ${generate(path.parentPath.node.arguments[0]).code}`);
     });
   }
 });
@@ -63,8 +62,12 @@ traverse(ast, {
 ### result
 
 ```sh
-searches 2
-matches 2
-match: 'Hello world!'
-match: 'Hello earth!'
+searches 3
+matches 3
+match type: StringLiteral
+      code: 'Hello world!'
+match type: StringLiteral
+      code: 'Hello earth!'
+match type: Identifier
+      code: KEY_VALUE
 ```
