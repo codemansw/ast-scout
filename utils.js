@@ -4,7 +4,7 @@ const parser = require('@babel/parser');
 
 const getAst = (code, config = {}) => {
   const defaultConfig = {
-      sourceType: 'module',
+      sourceType: 'unambiguous',
       plugins: ['jsx', 'decorators-legacy', 'classProperties', 'objectRestSpread'],
   }
 

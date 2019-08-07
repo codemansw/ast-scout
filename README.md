@@ -15,8 +15,7 @@ This is a tool to search AST for objects on basis of a string of code. This can 
 
 ```js
 const traverse = require('@babel/traverse').default;
-const parser = require('@babel/parser');
-const findPaths = require('ast-scout').findPaths;
+const { findPaths, getAst } = require('ast-scout');
 
 const code = `
   import { bla } from 'common/utils';
@@ -30,10 +29,12 @@ const code = `
   }
 `;
 
-const ast = parser.parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'decorators-legacy', 'classProperties', 'objectRestSpread'],
-});
+const babelConfig = {
+  sourceType: 'unambiguous',
+  plugins: ['jsx', 'decorators-legacy', 'classProperties', 'objectRestSpread'],
+}
+
+const ast = getAst(code, babelConfig);
 
 const scout = {
   search: 'bla(\'Hello world!\')',
@@ -52,18 +53,18 @@ traverse(ast, {
     console.log('matches', matches.length);
 
     matches.forEach( path => {
-      console.log(path.node.name);
-    })
+      console.log(`match: '${path.node.value}'`);
+    });
   }
 });
 
 ```
 
-result:
+### result
 
 ```sh
-searches 1
+searches 2
 matches 2
-Hello world!
-Hello earth!
+match: 'Hello world!'
+match: 'Hello earth!'
 ```
