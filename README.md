@@ -70,8 +70,8 @@ traverse(ast, {
 ### result
 
 ```sh
-searches 3
-matches 3
+searchPaths 3
+matchPaths 3
 match type: StringLiteral
       code: 'Hello world!'
 match type: StringLiteral
@@ -88,7 +88,7 @@ match type: Identifier
 findPaths(path, scout, babelConfig);
 ```
 
-Returns an object with Babel path results for searches and matches.
+Returns an object with Babel path results for searchPaths and matchPaths.
 
 #### Path
 
@@ -101,5 +101,3 @@ string|object - Defines search, matching and path reporting requirements. See be
 #### BabelConfig
 
 object - Internally babel is used for creating the nested visitors structrure. Passing this config ensures babel is configured the same as the traverser.
-
-
