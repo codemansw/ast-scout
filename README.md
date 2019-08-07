@@ -62,7 +62,7 @@ traverse(ast, {
 result:
 
 ```sh
-searches 2
+searches 1
 matches 2
 Hello world!
 Hello earth!
