@@ -100,4 +100,4 @@ string|object - Defines search, matching and path reporting requirements. See be
 
 #### BabelConfig
 
-object - Internally babel is used for creating the nested visitors structrure. Passing this config ensures babel is configured the same as the traverser.
+object - Internally babel parser is used for creating a nested visitors structrure. Passing this config ensures the AST created from the search parameter is in line with the AST created from the code you want to analyse.
