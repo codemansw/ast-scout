@@ -136,7 +136,7 @@ const scout = {
 
 #### Search with context and startType
 
-Searching for jsx attribute declarations without providing the containing jsx container in the search term would lead us to results of object definitions types instead. Therefore we can define a search context ( a jsx attribute definition within div tags) and instruct the ast-scout process to start the visitor object tree at the JSXAttribute node.
+Searching for jsx attribute declarations without providing the containing jsx container in the search term would lead us to results of object definition types instead. Therefore we can define a search context ( a jsx attribute definition within div tags) and instruct the ast-scout process to start the visitor object tree at the JSXAttribute node.
 
 In the returned searchPaths all paths found for the exact match of ```key={previousSearchTerm}``` are listed.
 
