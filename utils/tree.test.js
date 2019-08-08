@@ -1,5 +1,4 @@
 var expect = require('chai').expect;
-// const decycle = require('json-decycle').decycle;
 
 const {
   decorateTreeWithSiblingNavigationAndIndex,
@@ -20,7 +19,6 @@ describe('utils.tree', () => {
     it('should add reference to next route on all routes but the last', () => {
       //exec
       const result = decorateTreeWithSiblingNavigationAndIndex(routeTree);
-      // console.log(JSON.stringify(result, decycle(), 2));
 
       //test
       expect(result.routes[0].next).to.equal(result.routes[1]);
@@ -33,7 +31,6 @@ describe('utils.tree', () => {
     it('should add reference to prev route on all routes but the first', () => {
       //exec
       const result = decorateTreeWithSiblingNavigationAndIndex(routeTree);
-      // console.log(JSON.stringify(result, decycle(), 2));
 
       //test
       expect(result.routes[0].hasOwnProperty('prev')).to.be.false;
@@ -52,6 +49,11 @@ describe('utils.tree', () => {
       routeTree = {
         routes: [{
           nodeIsDeclaration: false,
+          parent: true,
+          inList: true,
+          listKey: 0,
+          key: 0,
+          parentKey: 0,
           node: {
             type: 'VariableDeclaration',
           },
@@ -67,12 +69,35 @@ describe('utils.tree', () => {
     });
 
     it('Should remove top route from route-tree for any type but *Decalaration', () => {
+      //verify
+      expect(routeTree.routes[0].node.type).to.equal('VariableDeclaration');
+
       //exec
       const result = groom(routeTree);
 
       //test
       expect(result.routes[0].node.type).to.equal('CallExpression');
-    })
+    });
+
+    it('Should remove top route references to parent node', () => {
+      //verify
+      expect(routeTree.routes[0].hasOwnProperty('parent')).to.be.true;
+      expect(routeTree.routes[0].hasOwnProperty('inList')).to.be.true;
+      expect(routeTree.routes[0].hasOwnProperty('listKey')).to.be.true;
+      expect(routeTree.routes[0].hasOwnProperty('key')).to.be.true;
+      expect(routeTree.routes[0].hasOwnProperty('parentKey')).to.be.true;
+
+      //exec
+      const result = groom(routeTree);
+
+      //test
+      expect(result.routes[0].hasOwnProperty('parent')).to.be.false;
+      expect(result.routes[0].hasOwnProperty('inList')).to.be.false;
+      expect(result.routes[0].hasOwnProperty('listKey')).to.be.false;
+      expect(result.routes[0].hasOwnProperty('key')).to.be.false;
+      expect(result.routes[0].hasOwnProperty('parentKey')).to.be.false;
+    });
+
   })
 
 });
