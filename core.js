@@ -30,7 +30,7 @@ checkValue = (value, key) => {
 }
 
 const findScoutMatch = (scout, key, value) => {
-  if (!scout || !scout.match || !scout.match.length) {
+  if (!scout || isString(scout) || !scout.match || !scout.match.length) {
     return null;
   }
 
