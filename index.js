@@ -58,8 +58,13 @@ const createVisitorFromScout = (scout, babelConfig) => {
     }
   });
 
+  if (SCOUT_DEBUG === 'true') {
+    console.log('scoutSearch.startType', scoutSearch.startType);
+    console.log('routeTree:\n', JSON.stringify(cleanupTree(routeTree), decycle(), 2));
+  }
+
   if (isObject(scoutSearch)) {
-    const route = relayStartRoute(routeTree, scoutSearch.startType);
+    const route = relayStartRoute(routeTree, scoutSearch.startType) || route;
 
     routeTree = {
       routes: []

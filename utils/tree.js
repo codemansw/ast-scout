@@ -29,18 +29,18 @@ const groom = (route, startType) => {
     route.routes[0].routes &&
     route.routes[0].routes.length
   ) {
-    const hasSubRoutes = route.routes[0].routes;
-    const nodeIsDeclaration = route.routes[0].nodeIsDeclaration === true;
-    const firstSubRouteIsOfStartType = startType && route.routes[0].node.type === startType;
-    if (
-      hasSubRoutes &&
-      !nodeIsDeclaration &&
-      !firstSubRouteIsOfStartType
-    ) {
-      route = {
-        routes: route.routes[0].routes
-      };
-    }
+    // const hasSubRoutes = route.routes[0].routes;
+    // const nodeIsDeclaration = route.routes[0].nodeIsDeclaration === true;
+    // const firstSubRouteIsOfStartType = startType && route.routes[0].node.type === startType;
+    // if (
+    //   hasSubRoutes &&
+    //   !nodeIsDeclaration &&
+    //   !firstSubRouteIsOfStartType
+    // ) {
+    //   route = {
+    //     routes: route.routes[0].routes
+    //   };
+    // }
     delete route.routes[0].parent;
     delete route.routes[0].inList;
     delete route.routes[0].listKey;

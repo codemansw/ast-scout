@@ -4,7 +4,7 @@
   "description": "Search for information in an abstract sysntax tree",
   "main": "index.js",
   "scripts": {
-    "test": "mocha **/*.test.js !./node_modules/**/*.js*"
+    "test": "mocha **/*.test.js"
   },
   "repository": {
     "type": "git",

@@ -54,13 +54,13 @@ describe('utils.tree', () => {
           listKey: 0,
           key: 0,
           parentKey: 0,
-          node: {
-            type: 'VariableDeclaration',
-          },
+          // node: {
+          //   type: 'VariableDeclaration',
+          // },
           routes: [{
-            node: {
-              type: 'CallExpression',
-            },
+            // node: {
+            //   type: 'CallExpression',
+            // },
             routes: [{
               routes: [{}, {}] }, {}, {} ],
             }]
@@ -68,16 +68,16 @@ describe('utils.tree', () => {
       };
     });
 
-    it('Should remove top route from route-tree for any type but *Decalaration', () => {
-      //verify
-      expect(routeTree.routes[0].node.type).to.equal('VariableDeclaration');
+    // it('Should remove top route from route-tree for any type but *Decalaration', () => {
+    //   //verify
+    //   expect(routeTree.routes[0].node.type).to.equal('VariableDeclaration');
 
-      //exec
-      const result = groom(routeTree);
+    //   //exec
+    //   const result = groom(routeTree);
 
-      //test
-      expect(result.routes[0].node.type).to.equal('CallExpression');
-    });
+    //   //test
+    //   expect(result.routes[0].node.type).to.equal('CallExpression');
+    // });
 
     it('Should remove top route references to parent node', () => {
       //verify

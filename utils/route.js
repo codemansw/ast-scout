@@ -1,35 +1,34 @@
 const has = require("lodash/has");
 
 const relayStartRoute = (route, startType) => {
-  if (!route.routes) {
-    return route;
+  if (!route || !route.routes) {
+    return null;
   }
 
-  let startRoutes = route.routes.reduce( (previousValue, subRoute) => {
+  const startRoutes = [];
+
+  route.routes.forEach(subRoute => {
     if (subRoute.node && subRoute.node.type === startType) {
-      previousValue.push(subRoute);
+      startRoutes.push(subRoute);
+
+    } else {
+      if (!startRoutes.length) {
+        const deepRoute = relayStartRoute(subRoute, startType);
+  
+        if (deepRoute) {
+          startRoutes.push(deepRoute);
+        }
+      }
     }
-
-    return previousValue;
-  }, []);
-
-  if (startRoutes.length) {
-    return startRoutes[0]; // first matching path gets all
-  }
-
-  startRoutes = route.routes.reduce( (previousValue, subRoute) => {
-    previousValue.push(relayStartRoute(subRoute, startType));
-
-    return previousValue;
-  }, []);
+  });
 
   if (startRoutes.length) {
     return startRoutes[0]; // first matching path gets all
     
   } else {
-    return route; //no matchPaths at sub levels of the tree
+    return null;
   }
-}
+};
 
 const collectSearchRoutes = routes => {
   return routes.reduce( (previousValue, route) => {
