@@ -1,7 +1,6 @@
 const expect = require('chai').expect;
 
 const traverse = require('@babel/traverse').default;
-const generate = require('@babel/generator').default;
 const parser = require('@babel/parser');
 
 const { findPaths } = require('../index');
@@ -10,7 +9,7 @@ describe('examples CallEpression', () => {
   const code = `
     import { bla } from 'common/utils';
 
-    const fn = bla;
+    const fnRef = bla;
 
     function foo() {
       bla('Hello world!');
@@ -22,6 +21,18 @@ describe('examples CallEpression', () => {
 
     function foo3() {
       bla(KEY_VALUE);
+    }
+
+    const fn1 = () => {
+      function bla(a) {
+        let b = a;
+      }
+    }
+
+    const fn2 = () => {
+      const bla = a => {
+        let b = a;
+      }
     }
   `;
 
