@@ -108,13 +108,14 @@ describe('examples CallEpression', () => {
     expect(matchPaths.length).to.equal(0);
   });
 
-  it('should return on scout-obj-search-match 2 searchPaths and 1 matchPaths', () => {
+  it('should return on scout-obj-search-match 2 searchPaths and 2 matchPaths', () => {
     // init
     const scout = {
       search: 'bla(\'Hello world!\');',
       match: [{
         search: 'Hello world!',
-        regExpr: /^Hello world!$|^Hello earth!$/
+        regExpr: /^Hello .*$/,
+        marked: true,
       }]
     };
     let result;
@@ -130,7 +131,36 @@ describe('examples CallEpression', () => {
 
     //test
     expect(searchPaths.length).to.equal(2);
-    expect(matchPaths.length).to.equal(0);
+    expect(matchPaths.length).to.equal(2);
+    expect(matchPaths[0].node.value).to.equal('Hello world!');
+    expect(matchPaths[1].node.value).to.equal('Hello earth!');
+  });
+
+  it('should return on scout-obj-identifier-search-match 1 searchPaths and 1 matchPaths', () => {
+    // init
+    const scout = {
+      search: 'bla(KEY_VALUE);',
+      match: [{
+        search: 'KEY_VALUE',
+        marked: true,
+      }]
+    };
+    let result;
+
+    // exec
+    traverse(ast, {
+      Program: function programVisitor(path) {
+        result = findPaths(path, scout, babelConfig);
+      }
+    });
+
+    const { searchPaths, matchPaths } = result;
+
+    //test
+    expect(searchPaths.length).to.equal(1);
+    expect(matchPaths.length).to.equal(1);
+    expect(matchPaths[0].node.type).to.equal('Identifier');
+    expect(matchPaths[0].node.name).to.equal('KEY_VALUE');
   });
 
 });
