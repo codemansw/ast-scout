@@ -54,7 +54,30 @@ const groom = (route, startType) => {
   return route;
 }
 
+const cleanupTree = route => {
+  let newRoute = Object.assign({}, route);
+
+  if (newRoute.parent) {
+    newRoute.parent = '...';
+  }
+  if (newRoute.next) {
+    newRoute.next = '...';
+  }
+  if (newRoute.prev) {
+    newRoute.prev = '...';
+  }
+
+  if (newRoute.routes) {
+    newRoute.routes = newRoute.routes.map( route => {
+      return cleanupTree(route);
+    })
+  }
+
+  return newRoute;
+}
+
 module.exports = {
   decorateTreeWithSiblingNavigationAndIndex,
   groom,
+  cleanupTree,
 }

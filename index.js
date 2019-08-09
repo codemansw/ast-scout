@@ -7,10 +7,11 @@ const isString = require("lodash/isString");
 const decycle = require('json-decycle').decycle;
 
 const { SCOUT_DEBUG = 'false' } = process.env;
-const { createVisitorObject, buildPathProfile } = require('./core');
+const { createVisitorObject } = require('./core');
 const { 
   decorateTreeWithSiblingNavigationAndIndex,
   groom,
+  cleanupTree,
 } = require('./utils/tree');
 const {
   relayStartRoute,
@@ -20,9 +21,9 @@ const {
 } = require('./utils/route');
 const {
   getAst,
-  cleanupState,
-  cleanupTree,
-} = require('./utils');
+} = require('./utils/ast');
+const { buildPathProfile } = require('./utils/match');
+const { cleanupState } = require('./utils/state');
 
 const createVisitorFromScout = (scout, babelConfig) => {
   // todo scout validation .....
