@@ -11,7 +11,9 @@ npm i ast-scout --save
 
 This is a tool to search AST for objects on basis of a string of code. AstScout can be useful for collecting info from your codebase.
 
-From the scout's search definition ast-scout creates internally (with help of Babel) a visitor object tree where each visitor is, if required from the provided match definitions, decorated with additional logic to report back specific AST paths.
+From the scout's search definition ast-scout creates internally (with help of Babel) a visitor object tree where each visitor is, if required from the provided match definitions, decorated with additional logic to mark specific AST paths.
+
+Top level paths are reported back in ```searchPaths```, marked paths are reported back in ```matchPaths``` as object parameters returned from ```findPaths()```.
 
 ### example
 
