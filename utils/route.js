@@ -54,7 +54,7 @@ const collectMatchRoutes = routes => {
   }, []);  
 }
 
-const deDuplicateRoutes = (previousValue, route) => {
+const deDuplicateRouteReducer = (previousValue, route) => {
   if (
     has(route, 'node.start') &&
     has(route, 'node.end') &&
@@ -75,5 +75,5 @@ module.exports = {
   relayStartRoute,
   collectSearchRoutes,
   collectMatchRoutes,
-  deDuplicateRoutes,
+  deDuplicateRouteReducer,
 }

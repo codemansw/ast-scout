@@ -16,7 +16,7 @@ const {
   relayStartRoute,
   collectSearchRoutes,
   collectMatchRoutes,
-  deDuplicateRoutes,
+  deDuplicateRouteReducer,
 } = require('./utils/route');
 const {
   getAst,
@@ -109,7 +109,7 @@ const findPaths = (path, scout, babelConfig) => {
 
   if (has(stateObject, 'state.length')) {
     pathsObject.searchPaths = collectSearchRoutes(stateObject.state);
-    pathsObject.matchPaths = collectMatchRoutes(stateObject.state).reduce(deDuplicateRoutes, []);
+    pathsObject.matchPaths = collectMatchRoutes(stateObject.state).reduce(deDuplicateRouteReducer, []);
   }
 
   return pathsObject;
