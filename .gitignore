@@ -3,3 +3,4 @@ package-lock.json
 weg
 yarn.lock
 yarn-error.log
+.vscode
