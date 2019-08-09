@@ -157,3 +157,4 @@ const scout = {
 }
 ```
 
+If you wonder what type of nodes you can expect, copy past your code in the [AST Explorer](https://astexplorer.net) (and don't forget to select Javascript + Babel 7).
