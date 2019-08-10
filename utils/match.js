@@ -6,6 +6,8 @@ const isObject = require("lodash/isObject");
 const isBoolean = require("lodash/isBoolean");
 const isArray = require("lodash/isArray");
 const isUndefined = require("lodash/isUndefined");
+const isFunction = require("lodash/isFunction");
+const isSymbol = require("lodash/isSymbol");
 
 const { PATH_OPTS, ROUTE_SKIP_KEYS, NODE_ADDITIONAL_KEYS } = require('./../constants');
 
@@ -14,17 +16,19 @@ const checkValue = (value, key) => {
     return value;
   } else if (isArray(value)) {
     return 'array';
-  } else if (isObject(value)) {
-    return 'object';
   } else if (isUndefined(value)) {
     return value;
   } else if (value === null) {
     return value;
-  } else {
-    console.warn(`core.checkValue: uncovered key:'${key}', value:'${value}'`);
+  } else if (isFunction(value)) {
+    return 'function';
+  } else if (isSymbol(value)) {
+    return 'symbol';
+  } else if (isObject(value)) {
+    return 'object';
   }
 
-  return value;
+  return typeof value;
 }
 
 const findScoutMatch = (scout, key, value) => {
